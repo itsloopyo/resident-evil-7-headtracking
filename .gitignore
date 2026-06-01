@@ -1,0 +1,32 @@
+# Build outputs
+build/
+bin/
+obj/
+dist/
+release/
+
+# Pixi environment
+.pixi/
+
+# Vendored game DLLs (referenced at build time, never committed)
+libs/
+
+# Visual Studio / IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Agent tooling (machine-generated, not tracked)
+.claude/
+.lab/
+CLAUDE.md
+AGENTS.md
+.mcp.json
+
+# Per-game install state
+.headtracking-state.json
+
+# NexusMods page copy source (not shipped)
+NEXUS_MODS.md

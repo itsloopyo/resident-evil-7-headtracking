@@ -1,0 +1,9 @@
+{
+    "name":  "RE7HeadTracking",
+    "author":  "itsloopyo",
+    "version":  "0.0.0",
+    "description":  "Head tracking for Resident Evil 7 biohazard via OpenTrack",
+    "game":  "Resident Evil 7 biohazard",
+    "repository":  "https://github.com/itsloopyo/resident-evil-7-headtracking",
+    "license":  "MIT"
+}
