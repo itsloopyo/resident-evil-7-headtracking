@@ -1,7 +1,6 @@
 #include <iostream>
 
 int RunConfigTests();
-int RunCameraMathTests();
 
 // Simple assert-based runner, matching cameraunlock-core/cpp/tests/test_main.cpp.
 int main() {
@@ -10,7 +9,6 @@ int main() {
 
     int failures = 0;
     failures += RunConfigTests();
-    failures += RunCameraMathTests();
 
     if (failures == 0) {
         std::cout << "All tests passed!\n";

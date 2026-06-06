@@ -3,23 +3,12 @@
 #include "logger.h"
 
 #include <cameraunlock/config/ini_reader.h>
-
-#include <algorithm>
-#include <cmath>
+#include <cameraunlock/math/finite_utils.h>
+#include <cameraunlock/protocol/port_utils.h>
 
 namespace RE7HT {
 
-namespace {
-// std::clamp does NOT sanitize NaN/Inf: clamp(NaN, lo, hi) returns NaN because
-// both `NaN < lo` and `hi < NaN` are false. strtod (used by ReadFloat) accepts
-// "nan"/"inf" and overflows large literals like 1e400 to +inf, so a malformed
-// or corrupted HeadTracking.ini value would otherwise pass straight through
-// Validate() and poison the sin/cos/view-matrix math. Replace any non-finite
-// value with the documented default before clamping into range.
-inline float Sanitize(float v, float fallback, float lo, float hi) {
-    return std::clamp(std::isfinite(v) ? v : fallback, lo, hi);
-}
-}  // namespace
+using cameraunlock::math::SanitizeFinite;
 
 void Config::SetDefaults() {
     *this = Config{};
@@ -28,19 +17,19 @@ void Config::SetDefaults() {
 void Config::Validate() {
     static const Config kDefaults{};
 
-    yawMultiplier = Sanitize(yawMultiplier, kDefaults.yawMultiplier, 0.1f, 5.0f);
-    pitchMultiplier = Sanitize(pitchMultiplier, kDefaults.pitchMultiplier, 0.1f, 5.0f);
-    rollMultiplier = Sanitize(rollMultiplier, kDefaults.rollMultiplier, 0.0f, 2.0f);
+    yawMultiplier = SanitizeFinite(yawMultiplier, kDefaults.yawMultiplier, 0.1f, 5.0f);
+    pitchMultiplier = SanitizeFinite(pitchMultiplier, kDefaults.pitchMultiplier, 0.1f, 5.0f);
+    rollMultiplier = SanitizeFinite(rollMultiplier, kDefaults.rollMultiplier, 0.0f, 2.0f);
 
-    positionSensitivityX = Sanitize(positionSensitivityX, kDefaults.positionSensitivityX, 0.1f, 10.0f);
-    positionSensitivityY = Sanitize(positionSensitivityY, kDefaults.positionSensitivityY, 0.1f, 10.0f);
-    positionSensitivityZ = Sanitize(positionSensitivityZ, kDefaults.positionSensitivityZ, 0.1f, 10.0f);
+    positionSensitivityX = SanitizeFinite(positionSensitivityX, kDefaults.positionSensitivityX, 0.1f, 10.0f);
+    positionSensitivityY = SanitizeFinite(positionSensitivityY, kDefaults.positionSensitivityY, 0.1f, 10.0f);
+    positionSensitivityZ = SanitizeFinite(positionSensitivityZ, kDefaults.positionSensitivityZ, 0.1f, 10.0f);
 
-    positionLimitX = Sanitize(positionLimitX, kDefaults.positionLimitX, 0.01f, 2.0f);
-    positionLimitY = Sanitize(positionLimitY, kDefaults.positionLimitY, 0.01f, 2.0f);
-    positionLimitZ = Sanitize(positionLimitZ, kDefaults.positionLimitZ, 0.01f, 2.0f);
-    positionLimitZBack = Sanitize(positionLimitZBack, kDefaults.positionLimitZBack, 0.01f, 2.0f);
-    positionSmoothing = Sanitize(positionSmoothing, kDefaults.positionSmoothing, 0.0f, 0.99f);
+    positionLimitX = SanitizeFinite(positionLimitX, kDefaults.positionLimitX, 0.01f, 2.0f);
+    positionLimitY = SanitizeFinite(positionLimitY, kDefaults.positionLimitY, 0.01f, 2.0f);
+    positionLimitZ = SanitizeFinite(positionLimitZ, kDefaults.positionLimitZ, 0.01f, 2.0f);
+    positionLimitZBack = SanitizeFinite(positionLimitZBack, kDefaults.positionLimitZBack, 0.01f, 2.0f);
+    positionSmoothing = SanitizeFinite(positionSmoothing, kDefaults.positionSmoothing, 0.0f, 0.99f);
 
     if (udpPort < 1024) {
         Logger::Instance().Warning("UDP port %d is in reserved range, using default %d",
@@ -58,15 +47,12 @@ bool Config::Load(const char* path) {
         return false;
     }
 
-    // Validate the full int before narrowing: a value above 65535 would
-    // otherwise wrap silently into a valid-looking but wrong port.
     int rawPort = reader.ReadInt("Network", "UDPPort", udpPort);
-    if (rawPort < 1024 || rawPort > 65535) {
+    bool portValid = false;
+    udpPort = cameraunlock::NormalizeUdpPort(rawPort, DEFAULT_UDP_PORT, portValid);
+    if (!portValid) {
         Logger::Instance().Warning("UDP port %d out of range (1024-65535), using default %d",
                                    rawPort, DEFAULT_UDP_PORT);
-        udpPort = DEFAULT_UDP_PORT;
-    } else {
-        udpPort = static_cast<uint16_t>(rawPort);
     }
 
     yawMultiplier = reader.ReadFloat("Sensitivity", "YawMultiplier", yawMultiplier);

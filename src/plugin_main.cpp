@@ -4,34 +4,20 @@
 
 #include "core/mod.h"
 #include "core/logger.h"
-#include "core/window.h"
 #include "camera/camera_hook.h"
 
 #include <cameraunlock/input/hotkey_poller.h>
+#include <cameraunlock/input/chord_hotkeys.h>
+#include <cameraunlock/reframework/game_window.h>
 #include <cameraunlock/reframework/log_callback.h>
+
+using cameraunlock::input::NavGuarded;
+using cameraunlock::input::ChordGuarded;
 
 static cameraunlock::input::HotkeyPoller g_hotkeyPoller;
 
-static bool IsChordHeld() {
-    return ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0)
-        && ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0);
-}
-
-// Nav-cluster keys fire only when the Ctrl+Shift chord is NOT held, so the
-// chord bindings below are the sole trigger for Ctrl+Shift+<nav> combos.
-template <typename F>
-static cameraunlock::input::HotkeyCallback NavGuarded(F action) {
-    return [action]() { if (!IsChordHeld()) action(); };
-}
-
-// Chord-cluster letters fire only while the Ctrl+Shift chord IS held.
-template <typename F>
-static cameraunlock::input::HotkeyCallback ChordGuarded(F action) {
-    return [action]() { if (IsChordHeld()) action(); };
-}
-
 static void OnPreBeginRendering() {
-    RE7HT::CenterGameWindowOnce();
+    cameraunlock::reframework::CenterGameWindowOnce();
     RE7HT::OnPreBeginRendering();
 }
 
@@ -89,16 +75,17 @@ bool reframework_plugin_initialize(const REFrameworkPluginInitializeParam* param
     // Set up hotkeys
     auto& config = RE7HT::Mod::Instance().GetConfig();
 
-    // Nav-cluster bindings (End / Home / Page Up / Page Down).
+    // Nav-cluster bindings (End / Home / Page Up / Page Down). Recenter and
+    // mode-cycle are deferred to the render thread (see Mod::ProcessDeferredActions).
     g_hotkeyPoller.SetToggleKey(config.toggleKey, NavGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
-    g_hotkeyPoller.SetRecenterKey(config.recenterKey, NavGuarded([] { RE7HT::Mod::Instance().Recenter(); }));
-    g_hotkeyPoller.AddHotkey(config.positionToggleKey, NavGuarded([] { RE7HT::Mod::Instance().CycleTrackingMode(); }));
+    g_hotkeyPoller.SetRecenterKey(config.recenterKey, NavGuarded([] { RE7HT::Mod::Instance().RequestRecenter(); }));
+    g_hotkeyPoller.AddHotkey(config.positionToggleKey, NavGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
     g_hotkeyPoller.AddHotkey(config.yawModeKey, NavGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));
 
     // Ctrl+Shift+<letter> chord bindings (CLAUDE.md T/Y/U/G/H/J cluster).
-    g_hotkeyPoller.AddHotkey('T', ChordGuarded([] { RE7HT::Mod::Instance().Recenter(); }));
+    g_hotkeyPoller.AddHotkey('T', ChordGuarded([] { RE7HT::Mod::Instance().RequestRecenter(); }));
     g_hotkeyPoller.AddHotkey('Y', ChordGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
-    g_hotkeyPoller.AddHotkey('G', ChordGuarded([] { RE7HT::Mod::Instance().CycleTrackingMode(); }));
+    g_hotkeyPoller.AddHotkey('G', ChordGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
     g_hotkeyPoller.AddHotkey('H', ChordGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));
 
     g_hotkeyPoller.Start();

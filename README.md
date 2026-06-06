@@ -1,3 +1,10 @@
+> [!CAUTION]
+> ## Experimental prototype - expect missing core features
+>
+> This is **not** a finished mod.
+>
+> Current builds may only test whether head tracking can drive the camera. Bug fixes and core features like decoupled look/aim, independent reticle behavior, correct shot direction, off-screen reticle support, movement handling, and comfort tuning may be missing at this early stage of development.
+
 # Resident Evil 7 Head Tracking
 
 Decoupled head tracking for Resident Evil 7 biohazard: your head moves the view while the mouse or controller still controls aim, so you can look around the room with your gun pointed where you want it, no VR headset required.

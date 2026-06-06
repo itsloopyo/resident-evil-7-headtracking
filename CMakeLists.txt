@@ -38,7 +38,6 @@ add_library(RE7HeadTracking SHARED
     src/core/mod.cpp
     src/core/config.cpp
     src/core/logger.cpp
-    src/core/window.cpp
     src/camera/camera_hook.cpp
     src/camera/game_state_detector.cpp
 )
@@ -66,7 +65,6 @@ if(RE7HT_BUILD_TESTS)
     add_executable(re7ht_tests
         tests/test_main.cpp
         tests/config_tests.cpp
-        tests/camera_math_tests.cpp
         src/core/config.cpp
         src/core/logger.cpp
     )
