@@ -38,4 +38,7 @@ package = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/package-rele
 release = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/release.ps1" }
 
 [dependencies]
-# No pixi dependencies - using system CMake and Visual Studio
+# CMake orchestrates the build; the C++ compiler comes from Visual Studio
+# (setup-msbuild in CI). Pinning cmake here keeps the environment non-empty
+# so `pixi list` succeeds on pixi >= 0.70, and makes the build reproducible.
+cmake = ">=3.28"
