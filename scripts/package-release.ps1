@@ -101,6 +101,24 @@ foreach ($asset in $vendorAssets) {
     }
 }
 
+# launcher-manifest.json is the file lopari reads at the installer-ZIP root.
+# RE7 stays on delivery_mode: install_cmd because install.cmd strips the
+# REFramework nightly's VR runtime DLLs to keep the install flatscreen, which
+# has no declarative equivalent (the manifest engine only supports
+# system-file-copy runtime requirements). Stamp the real release version in so
+# mod_info.version never drifts from manifest.json. (Not staged into the Nexus
+# ZIP - Nexus users do not use the launcher.)
+$launcherManifestPath = Join-Path $projectDir 'launcher-manifest.json'
+if (-not (Test-Path $launcherManifestPath)) {
+    throw "launcher-manifest.json not found at: $launcherManifestPath"
+}
+$launcherManifest = Get-Content -Raw -Path $launcherManifestPath | ConvertFrom-Json
+$launcherManifest.mod_info.version = $version
+$stagedManifestPath = Join-Path $ghStagingDir 'launcher-manifest.json'
+$manifestJson = $launcherManifest | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($stagedManifestPath, $manifestJson, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "  launcher-manifest.json (v$version)" -ForegroundColor Green
+
 $docFiles = @('README.md', 'LICENSE', 'CHANGELOG.md', 'THIRD-PARTY-NOTICES.md')
 foreach ($doc in $docFiles) {
     $docPath = Join-Path $projectDir $doc

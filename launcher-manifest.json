@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "mod_info": {
+    "name": "RE7HeadTracking",
+    "version": "0.0.0",
+    "game_id": "resident-evil-7"
+  },
+  "strategy": "REFramework",
+  "delivery_mode": "manifest",
+
+  "loader": {
+    "archives": [
+      { "source": "vendor/reframework/RE7.zip", "dest": "", "flatten": null }
+    ],
+    "detect": [ "dinput8.dll" ],
+    "seed": [
+      { "target": "reframework/plugins/HeadTracking.ini", "content_b64": "OyBSRTcgSGVhZCBUcmFja2luZyBDb25maWd1cmF0aW9uCjsgRGVsZXRlIHRoaXMgZmlsZSB0byByZXNldCB0byBkZWZhdWx0cwoKW05ldHdvcmtdCjsgVURQIHBvcnQgZm9yIE9wZW5UcmFjayBkYXRhIChkZWZhdWx0OiA0MjQyKQpVRFBQb3J0PTQyNDIKCltTZW5zaXRpdml0eV0KOyBSb3RhdGlvbiBzZW5zaXRpdml0eSBtdWx0aXBsaWVycyAoMS4wID0gMToxKQpZYXdNdWx0aXBsaWVyPTEuMApQaXRjaE11bHRpcGxpZXI9MS4wClJvbGxNdWx0aXBsaWVyPTEuMAoKW1Bvc2l0aW9uXQo7IFBvc2l0aW9uIHRyYWNraW5nIHNlbnNpdGl2aXR5ICgwLjEtMTAuMCwgaGlnaGVyID0gbW9yZSBtb3ZlbWVudCkKU2Vuc2l0aXZpdHlYPTEuMApTZW5zaXRpdml0eVk9MS4wClNlbnNpdGl2aXR5Wj0xLjAKOyBQb3NpdGlvbiBsaW1pdHMgaW4gbWV0ZXJzIChob3cgZmFyIHRoZSBjYW1lcmEgY2FuIG1vdmUpCkxpbWl0WD0wLjMwCkxpbWl0WT0wLjIwCkxpbWl0Wj0wLjQwCjsgQmFja3dhcmQgbGVhbiBsaW1pdCAocHJldmVudHMgY2FtZXJhIGNsaXBwaW5nIHRocm91Z2ggcGxheWVyIG1vZGVsKQpMaW1pdFpCYWNrPTAuMTAKOyBTbW9vdGhpbmcgZmFjdG9yICgwLjAgPSBub25lLCAwLjk5ID0gbWF4aW11bSkKU21vb3RoaW5nPTAuMTUKOyBJbnZlcnQgcG9zaXRpb24gYXhlcyAoZmxpcCBpZiBsZWFuaW5nIG1vdmVzIHRoZSB2aWV3IHRoZSB3cm9uZyB3YXkpCkludmVydFg9ZmFsc2UKSW52ZXJ0WT1mYWxzZQpJbnZlcnRaPWZhbHNlCjsgRW5hYmxlL2Rpc2FibGUgcG9zaXRpb24gdHJhY2tpbmcgKDZET0YpCkVuYWJsZWQ9dHJ1ZQoKW0hvdGtleXNdCjsgVmlydHVhbCBrZXkgY29kZXMgKGhleCkuIENob3JkIGFsdGVybmF0aXZlczogQ3RybCtTaGlmdCtUL1kvRy9ILgpUb2dnbGVLZXk9MHgyMyAgICAgICAgIDsgRW5kIC0gRW5hYmxlL2Rpc2FibGUKUmVjZW50ZXJLZXk9MHgyNCAgICAgICA7IEhvbWUgLSBSZWNlbnRlciB2aWV3ClBvc2l0aW9uVG9nZ2xlS2V5PTB4MjEgOyBQYWdlIFVwIC0gQ3ljbGUgdHJhY2tpbmcgbW9kZQpZYXdNb2RlS2V5PTB4MjIgICAgICAgIDsgUGFnZSBEb3duIC0gVG9nZ2xlIHdvcmxkL2xvY2FsIHlhdwoKW0dlbmVyYWxdCjsgQXV0by1lbmFibGUgdHJhY2tpbmcgb24gZ2FtZSBzdGFydApBdXRvRW5hYmxlPXRydWUKOyBZYXcgbW9kZTogZmFsc2UgPSBjYW1lcmEtbG9jYWwsIHRydWUgPSBob3Jpem9uLWxvY2tlZCAoZGVmYXVsdCkKV29ybGRTcGFjZVlhdz10cnVlCg==" }
+    ]
+  },
+
+  "files": [
+    { "source": "plugins/RE7HeadTracking.dll", "target": "reframework/plugins/RE7HeadTracking.dll" }
+  ],
+
+  "runtime_requirements": [],
+  "dependencies": []
+}
