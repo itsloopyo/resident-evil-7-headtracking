@@ -42,6 +42,10 @@ public:
     // fragmented dt.
     void TickFrame();
 
+    // Wall-clock seconds of the last TickFrame step. GUI marker compensation
+    // smooths its projection at the same dt the tracking pipeline used.
+    float GetLastDeltaTime() const { return m_lastDeltaTime; }
+
     bool GetProcessedRotation(float& yaw, float& pitch, float& roll);
     bool GetPositionOffset(float& x, float& y, float& z);
 
@@ -69,6 +73,7 @@ private:
     cameraunlock::input::DeferredAction m_cycleModeRequested;
 
     uint64_t m_lastFrameTickTime = 0;
+    float m_lastDeltaTime = 0.016f;
 
     std::string m_pluginDir;
 };

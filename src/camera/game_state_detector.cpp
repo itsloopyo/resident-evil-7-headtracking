@@ -6,10 +6,27 @@
 #include <cameraunlock/reframework/game_state_probing.h>
 
 #include <reframework/API.hpp>
+#include <atomic>
 
 namespace RE7HT {
 
 namespace ref = cameraunlock::reframework;
+
+// Last GetTickCount64() at which a title / main-menu / loading GUI element
+// drew. Written from the render thread (GUI draw hook in camera_hook.cpp) and
+// read from the same thread in RefreshGameState. RE7's manager probes do not
+// resolve (its type/method names differ from the RE2/RE9 candidates), so the
+// menu's live 3D backdrop passes every other gameplay tier; the GUI-draw
+// signal is the one unambiguous "not gameplay" marker. Mirrors RE Village.
+static std::atomic<uint64_t> g_mainMenuTick{0};
+
+// Hold window: keep suppressing for a few refresh intervals after the last
+// menu draw so a single missed frame does not flicker tracking back on.
+static constexpr uint64_t MAIN_MENU_HOLD_MS = 300;
+
+void NotifyMainMenuDrawn() {
+    g_mainMenuTick.store(GetTickCount64(), std::memory_order_relaxed);
+}
 
 // Resolved method + singleton name pairs for runtime checks
 using ref::MethodCheck;
@@ -410,6 +427,19 @@ static void RefreshGameState() {
 
         newState = true;
     } while (false);
+
+    // Title / main-menu / loading suppression. RE7's menu screens render over a
+    // live 3D backdrop that passes every tier above (and its manager probes
+    // don't resolve), so the one reliable "not gameplay" signal is that a
+    // title/menu/loading GUI element drew within the hold window. The GUI draw
+    // hook (camera_hook.cpp) calls NotifyMainMenuDrawn() for those elements.
+    if (newState) {
+        uint64_t menuTick = g_mainMenuTick.load(std::memory_order_relaxed);
+        if (menuTick != 0 && (now - menuTick) < MAIN_MENU_HOLD_MS) {
+            newState = false;
+            if (diag) Logger::Instance().Info("Diag: suppressed by main-menu signal");
+        }
+    }
 
     g_state.inGameplay = newState;
 

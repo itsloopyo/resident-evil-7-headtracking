@@ -170,6 +170,7 @@ void Mod::TickFrame() {
         deltaTime = std::clamp(deltaTime, kMinFrameDeltaSeconds, kMaxFrameDeltaSeconds);
     }
     m_lastFrameTickTime = now;
+    m_lastDeltaTime = deltaTime;
 
     m_session.Update(deltaTime);
 }

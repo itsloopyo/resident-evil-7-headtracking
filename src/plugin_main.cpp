@@ -25,6 +25,10 @@ static void OnPostBeginRendering() {
     RE7HT::OnPostBeginRendering();
 }
 
+static bool OnPreGuiDrawElement(void* element, void* context) {
+    return RE7HT::OnPreGuiDrawElement(element, context);
+}
+
 // --- REFramework plugin exports ---
 
 extern "C" __declspec(dllexport)
@@ -71,6 +75,7 @@ bool reframework_plugin_initialize(const REFrameworkPluginInitializeParam* param
 
     param->functions->on_pre_application_entry("BeginRendering", OnPreBeginRendering);
     param->functions->on_post_application_entry("BeginRendering", OnPostBeginRendering);
+    param->functions->on_pre_gui_draw_element(OnPreGuiDrawElement);
 
     // Set up hotkeys
     auto& config = RE7HT::Mod::Instance().GetConfig();
