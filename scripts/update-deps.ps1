@@ -24,7 +24,7 @@ Import-Module $module -Force
 # including RE7. We pin the on-disk filename to RE7.zip so deploy.ps1,
 # package-release.ps1 and install.cmd can hardcode it.
 $out = Join-Path $projectDir 'vendor/reframework'
-Refresh-VendoredLoader `
+Update-VendoredLoader `
     -Name 'reframework' `
     -OutputDir $out `
     -OutputFileName 'RE7.zip' `
