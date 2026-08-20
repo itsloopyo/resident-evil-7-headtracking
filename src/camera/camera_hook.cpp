@@ -7,6 +7,7 @@
 
 #include <cameraunlock/reframework/camera_chain.h>
 #include <cameraunlock/reframework/camera_controller_hook.h>
+#include <cameraunlock/time/qpc_clock.h>
 #include <cameraunlock/reframework/managed_utils.h>
 #include <cameraunlock/math/smoothing_utils.h>
 #include <cameraunlock/rendering/gui_marker_compensation.h>
@@ -31,7 +32,7 @@ static CleanCameraMatrix g_cleanCameraMatrix;
 // Per-frame flag: set true when OnPreBeginRendering applies head tracking.
 static bool g_trackingAppliedThisFrame = false;
 
-// Saved game rotation — what the game INTENDED before we modified it
+// Saved game rotation - what the game INTENDED before we modified it
 static struct {
     Matrix4x4f gameMatrix;
     bool hasGameMatrix = false;
@@ -178,6 +179,9 @@ static ref::CameraControllerHooker g_controllerHooker{
     CameraUpdatePreHook,
     CameraUpdatePostHook};
 
+// Minimum gap between repeats of the camera-controller-not-found warning.
+constexpr uint64_t kHookWarnIntervalUs = 30ull * 1000000ull;
+
 // Run camera-controller discovery once we are in gameplay, retrying each
 // frame until it succeeds. Deferring past the menu avoids latching onto a
 // render effect controller before the gameplay camera rig exists.
@@ -185,8 +189,13 @@ static void EnsureCameraControllerHooked() {
     if (g_controllerHooker.IsHooked()) return;
     if (g_controllerHooker.TryHook(GetCameraTransformCached())) return;
 
+    // Wall-clock, not frame-count: a frame-gated warning writes hundreds of
+    // lines an hour on a high-refresh display and buries the startup sequence.
     int attempts = g_controllerHooker.AttemptCount();
-    if (attempts == 1 || (attempts % 300) == 0) {
+    uint64_t now = cameraunlock::time::QpcNowMicros();
+    static uint64_t s_lastHookWarnUs = 0;
+    if (attempts == 1 || (now - s_lastHookWarnUs) >= kHookWarnIntervalUs) {
+        s_lastHookWarnUs = now;
         Logger::Instance().Warning(
             "Camera controller hook not yet found (attempt %d) - head tracking "
             "still active via the BeginRendering restore path", attempts);
@@ -200,13 +209,15 @@ static bool InitCachedFunctions() {
 }
 
 // Compute the rotation-only screen-space tangent shift of the clean view
-// forward under head rotation, smoothed at the tracking baseline. head is the
-// head-tracked world matrix; the clean matrix is read from g_cleanCameraMatrix.
+// forward under head rotation, smoothed with the internal projection constant.
+// head is the head-tracked world matrix; the clean matrix is read from
+// g_cleanCameraMatrix.
 static void UpdateMarkerProjection(const Matrix4x4f& head) {
     float rawTanRight = 0.f, rawTanUp = 0.f;
     if (ref::ProjectForwardToViewTangents(g_cleanCameraMatrix.matrix, head, rawTanRight, rawTanUp)) {
         float dt = Mod::Instance().GetLastDeltaTime();
-        constexpr float kSmoothing = static_cast<float>(cameraunlock::math::kBaselineSmoothing);
+        // Internal projection-smoothing constant, deliberately independent of the user's tracking smoothing.
+        constexpr float kSmoothing = 0.15f;
 
         static cameraunlock::math::SmoothedFloat s_tanRight;
         static cameraunlock::math::SmoothedFloat s_tanUp;
@@ -220,17 +231,19 @@ static void UpdateMarkerProjection(const Matrix4x4f& head) {
 }
 
 void OnPreBeginRendering() {
-    // Drain hotkey requests on the render thread so recenter / mode-cycle
-    // never mutate session state concurrently with the pipeline tick below.
+    // Before every gate below: the first-packet latch has to survive
+    // AutoEnable=false, a menu, and a failed function cache, because those are
+    // exactly the states a "no head tracking" report is trying to tell apart.
+    Mod::Instance().LogFirstTrackerPose();
+
+    // Drain hotkey requests on the render thread so the mode cycle never
+    // mutates session state concurrently with the pipeline tick below.
     Mod::Instance().ProcessDeferredActions();
 
     if (!InitCachedFunctions()) return;
     if (!Mod::Instance().IsEnabled()) return;
     if (!IsInGameplay()) return;
     EnsureCameraControllerHooked();
-    if (ShouldRecenter()) {
-        Mod::Instance().Recenter();
-    }
 
     // Advance interpolation + smoothing once per render frame so the
     // rendered camera and the smoother see the same wall-clock dt.
@@ -406,8 +419,12 @@ static void ApplyMarkerCompensation(reframework::API::ManagedObject* guiMo) {
     float pos[3] = { deltaX, deltaY, 0.f };
     ref::InvokeMethodWithArg(g_guiMethods.transformSetPosition, view, (void*)&pos[0]);
 
+    // Capped: the 120-frame interval alone streams for the whole
+    // session, which buries the startup chain a user is asked to send.
     static int s_markerDiagFrame = 0;
-    if ((s_markerDiagFrame++ % 120) == 0) {
+    static int s_markerDiagFrameLeft = 5;
+    if (s_markerDiagFrameLeft > 0 && (s_markerDiagFrame++ % 120) == 0) {
+        s_markerDiagFrameLeft--;
         Logger::Instance().Info("Marker comp: fx=%.1f fy=%.1f tanR=%.4f tanU=%.4f delta=(%.1f,%.1f)",
             fx, fy, g_marker.tanRight, g_marker.tanUp, deltaX, deltaY);
     }

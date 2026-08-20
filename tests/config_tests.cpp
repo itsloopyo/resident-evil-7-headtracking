@@ -76,18 +76,35 @@ int RunConfigTests() {
         Check(cfg.udpPort == RE7HT::DEFAULT_UDP_PORT, "reserved low port -> default");
     }
 
+    // Defaults: local is zero-latency, remote carries the 0.15 the old baseline
+    // floor used. A configured zero must survive Validate() - there is no floor.
+    {
+        const Config defaults;
+        Check(defaults.localSmoothing == 0.0f, "default local smoothing is 0.0");
+        Check(defaults.remoteSmoothing == 0.15f, "default remote smoothing is 0.15");
+
+        Config cfg;
+        cfg.localSmoothing = 0.0f;
+        cfg.remoteSmoothing = 0.0f;
+        cfg.Validate();
+        Check(cfg.localSmoothing == 0.0f, "zero local smoothing not floored");
+        Check(cfg.remoteSmoothing == 0.0f, "zero remote smoothing not floored");
+    }
+
     // Validate() clamps sensitivities into their documented ranges.
     {
         Config cfg;
         cfg.yawMultiplier = 99.0f;     // above max 5.0
         cfg.pitchMultiplier = -1.0f;   // below min 0.1
         cfg.rollMultiplier = 50.0f;    // above max 2.0
-        cfg.positionSmoothing = 5.0f;  // above max 0.99
+        cfg.localSmoothing = 5.0f;     // above max 1.0
+        cfg.remoteSmoothing = -1.0f;   // below min 0.0
         cfg.Validate();
         Check(cfg.yawMultiplier == 5.0f, "yaw multiplier clamped to max");
         Check(cfg.pitchMultiplier == 0.1f, "pitch multiplier clamped to min");
         Check(cfg.rollMultiplier == 2.0f, "roll multiplier clamped to max");
-        Check(cfg.positionSmoothing == 0.99f, "position smoothing clamped to max");
+        Check(cfg.localSmoothing == 1.0f, "local smoothing clamped to max");
+        Check(cfg.remoteSmoothing == 0.0f, "remote smoothing clamped to min");
     }
 
     // Validate() must sanitize non-finite values. std::clamp passes NaN through
@@ -109,7 +126,8 @@ int RunConfigTests() {
         cfg.positionLimitY = kInf;
         cfg.positionLimitZ = kNaN;
         cfg.positionLimitZBack = kInf;
-        cfg.positionSmoothing = kNaN;
+        cfg.localSmoothing = kNaN;
+        cfg.remoteSmoothing = kInf;
         cfg.Validate();
 
         Check(std::isfinite(cfg.yawMultiplier), "NaN yaw multiplier sanitized to finite");
@@ -122,10 +140,12 @@ int RunConfigTests() {
         Check(std::isfinite(cfg.positionLimitY), "Inf limitY sanitized to finite");
         Check(std::isfinite(cfg.positionLimitZ), "NaN limitZ sanitized to finite");
         Check(std::isfinite(cfg.positionLimitZBack), "Inf limitZBack sanitized to finite");
-        Check(std::isfinite(cfg.positionSmoothing), "NaN smoothing sanitized to finite");
+        Check(std::isfinite(cfg.localSmoothing), "NaN local smoothing sanitized to finite");
+        Check(std::isfinite(cfg.remoteSmoothing), "Inf remote smoothing sanitized to finite");
         // Non-finite fields fall back to their documented default.
         Check(cfg.yawMultiplier == defaults.yawMultiplier, "NaN yaw multiplier falls back to default");
-        Check(cfg.positionSmoothing == defaults.positionSmoothing, "NaN smoothing falls back to default");
+        Check(cfg.localSmoothing == defaults.localSmoothing, "NaN local smoothing falls back to default");
+        Check(cfg.remoteSmoothing == defaults.remoteSmoothing, "Inf remote smoothing falls back to default");
     }
 
     // A non-finite value read from an actual INI file must also be sanitized,

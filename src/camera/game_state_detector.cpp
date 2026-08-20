@@ -41,7 +41,7 @@ static struct {
     reframework::API::Method* getPrimaryCamera = nullptr;
     reframework::API::Method* getGlobalSpeed = nullptr;
 
-    // Discovered checks — each is a method that returns a value indicating non-gameplay
+    // Discovered checks - each is a method that returns a value indicating non-gameplay
     MethodCheck isPaused;
     MethodCheck isPlayingEvent;
     MethodCheck isOpen;
@@ -84,7 +84,7 @@ static struct {
     void* gameplayCameraGO = nullptr;
     bool gameplayCameraLocked = false;
 
-    // Cursor visibility debounce (diagnostic only — not suppressing)
+    // Cursor visibility debounce (diagnostic only - not suppressing)
     int cursorVisibleCount = 0;
     int cursorHiddenCount = 0;
     bool cursorSuppressing = false;
@@ -93,7 +93,6 @@ static struct {
 
     // Transition tracking
     bool wasInGameplay = false;
-    bool pendingRecenter = false;
     int diagBurstRemaining = 0;
 } g_state;
 
@@ -386,7 +385,7 @@ static void RefreshGameState() {
             }
         }
 
-        // Cursor visibility (diagnostic only — NOT suppressing)
+        // Cursor visibility (diagnostic only - NOT suppressing)
         {
             CURSORINFO ci = {};
             ci.cbSize = sizeof(ci);
@@ -467,9 +466,8 @@ static void RefreshGameState() {
 
     // Detect transitions
     if (g_state.inGameplay && !g_state.wasInGameplay) {
-        g_state.pendingRecenter = true;
         g_state.diagBurstRemaining = 5;
-        Logger::Instance().Info("Game state: entered gameplay — pending recenter");
+        Logger::Instance().Info("Game state: entered gameplay");
     } else if (!g_state.inGameplay && g_state.wasInGameplay) {
         g_state.diagBurstRemaining = 5;
         Logger::Instance().Info("Game state: left gameplay");
@@ -480,14 +478,6 @@ static void RefreshGameState() {
 bool IsInGameplay() {
     RefreshGameState();
     return g_state.inGameplay;
-}
-
-bool ShouldRecenter() {
-    if (g_state.pendingRecenter) {
-        g_state.pendingRecenter = false;
-        return true;
-    }
-    return false;
 }
 
 } // namespace RE7HT

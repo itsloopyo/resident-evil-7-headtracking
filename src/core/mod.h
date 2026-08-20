@@ -20,16 +20,14 @@ public:
     void SetEnabled(bool enabled);
     void Toggle();
 
-    void Recenter();
     void CycleTrackingMode();
     void ToggleYawMode();
 
     // Hotkey callbacks fire on the HotkeyPoller's background thread, but
-    // Recenter and CycleTrackingMode mutate the session's non-atomic
-    // processor/interpolator smoothing state owned by the render thread. The
-    // hotkey thread only requests the action; ProcessDeferredActions() runs it
-    // on the render thread at the start of each frame.
-    void RequestRecenter() { m_recenterRequested.Request(); }
+    // CycleTrackingMode mutates the session's non-atomic processor/interpolator
+    // smoothing state owned by the render thread. The hotkey thread only
+    // requests the action; ProcessDeferredActions() runs it on the render
+    // thread at the start of each frame.
     void RequestCycleTrackingMode() { m_cycleModeRequested.Request(); }
     void ProcessDeferredActions();
 
@@ -41,6 +39,11 @@ public:
     // reads an identical value rather than re-ticking the pipeline with a
     // fragmented dt.
     void TickFrame();
+
+    // Latches the first tracker packet. Called from an ungated point in the
+    // render callback: the answer to "did the tracker ever send anything"
+    // must not depend on tracking being enabled or the camera hook engaging.
+    void LogFirstTrackerPose();
 
     // Wall-clock seconds of the last TickFrame step. GUI marker compensation
     // smooths its projection at the same dt the tracking pipeline used.
@@ -69,8 +72,9 @@ private:
 
     std::atomic<bool> m_worldSpaceYaw{false};
 
-    cameraunlock::input::DeferredAction m_recenterRequested;
     cameraunlock::input::DeferredAction m_cycleModeRequested;
+
+    bool m_loggedFirstPose = false;
 
     uint64_t m_lastFrameTickTime = 0;
     float m_lastDeltaTime = 0.016f;

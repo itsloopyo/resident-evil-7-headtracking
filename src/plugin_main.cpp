@@ -80,15 +80,13 @@ bool reframework_plugin_initialize(const REFrameworkPluginInitializeParam* param
     // Set up hotkeys
     auto& config = RE7HT::Mod::Instance().GetConfig();
 
-    // Nav-cluster bindings (End / Home / Page Up / Page Down). Recenter and
-    // mode-cycle are deferred to the render thread (see Mod::ProcessDeferredActions).
+    // Nav-cluster bindings (End / Page Up / Page Down). The mode cycle is deferred
+    // to the render thread (see Mod::ProcessDeferredActions).
     g_hotkeyPoller.SetToggleKey(config.toggleKey, NavGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
-    g_hotkeyPoller.SetRecenterKey(config.recenterKey, NavGuarded([] { RE7HT::Mod::Instance().RequestRecenter(); }));
     g_hotkeyPoller.AddHotkey(config.positionToggleKey, NavGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
     g_hotkeyPoller.AddHotkey(config.yawModeKey, NavGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));
 
     // Ctrl+Shift+<letter> chord bindings (CLAUDE.md T/Y/U/G/H/J cluster).
-    g_hotkeyPoller.AddHotkey('T', ChordGuarded([] { RE7HT::Mod::Instance().RequestRecenter(); }));
     g_hotkeyPoller.AddHotkey('Y', ChordGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
     g_hotkeyPoller.AddHotkey('G', ChordGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
     g_hotkeyPoller.AddHotkey('H', ChordGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));

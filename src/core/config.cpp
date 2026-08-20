@@ -21,6 +21,12 @@ void Config::Validate() {
     pitchMultiplier = SanitizeFinite(pitchMultiplier, kDefaults.pitchMultiplier, 0.1f, 5.0f);
     rollMultiplier = SanitizeFinite(rollMultiplier, kDefaults.rollMultiplier, 0.0f, 2.0f);
 
+    // Validation only: NaN/Inf falls back to the default, finite values clamp to
+    // [0,1]. There is no minimum floor - 0.0 means the user asked for zero
+    // smoothing and gets it.
+    localSmoothing = SanitizeFinite(localSmoothing, kDefaults.localSmoothing, 0.0f, 1.0f);
+    remoteSmoothing = SanitizeFinite(remoteSmoothing, kDefaults.remoteSmoothing, 0.0f, 1.0f);
+
     positionSensitivityX = SanitizeFinite(positionSensitivityX, kDefaults.positionSensitivityX, 0.1f, 10.0f);
     positionSensitivityY = SanitizeFinite(positionSensitivityY, kDefaults.positionSensitivityY, 0.1f, 10.0f);
     positionSensitivityZ = SanitizeFinite(positionSensitivityZ, kDefaults.positionSensitivityZ, 0.1f, 10.0f);
@@ -29,13 +35,35 @@ void Config::Validate() {
     positionLimitY = SanitizeFinite(positionLimitY, kDefaults.positionLimitY, 0.01f, 2.0f);
     positionLimitZ = SanitizeFinite(positionLimitZ, kDefaults.positionLimitZ, 0.01f, 2.0f);
     positionLimitZBack = SanitizeFinite(positionLimitZBack, kDefaults.positionLimitZBack, 0.01f, 2.0f);
-    positionSmoothing = SanitizeFinite(positionSmoothing, kDefaults.positionSmoothing, 0.0f, 0.99f);
 
     if (udpPort < 1024) {
         Logger::Instance().Warning("UDP port %d is in reserved range, using default %d",
                                    udpPort, DEFAULT_UDP_PORT);
         udpPort = DEFAULT_UDP_PORT;
     }
+}
+
+// Warned once per process rather than once per load: config is reloadable, and
+// repeating this on every reload buries it.
+//
+// The old value is deliberately NOT migrated into the new keys. The single
+// Smoothing value carried a hidden 0.15 floor, so the number in an existing
+// config does not mean what it used to: copying it across would hand a local
+// user smoothing they never chose under the new semantics, and copying it into
+// only one of the two keys would be a guess about which connection they were on.
+static void WarnRetiredSmoothingKey(const cameraunlock::IniReader& reader,
+                                    const char* section, const char* key) {
+    static bool warned = false;
+    if (warned) return;
+    if (reader.ReadString(section, key, "").empty()) return;
+    warned = true;
+    Logger::Instance().Warning(
+        "Config key [%s] %s has been retired and is IGNORED. Smoothing is now two "
+        "keys: LocalSmoothing (default 0, applies to a tracker on this machine) and "
+        "RemoteSmoothing (default 0.15, applies to a tracker on the network). The "
+        "old value is not migrated because the semantics changed - it carried a "
+        "hidden 0.15 floor that no longer exists. Set the two new keys.",
+        section, key);
 }
 
 bool Config::Load(const char* path) {
@@ -59,8 +87,12 @@ bool Config::Load(const char* path) {
     pitchMultiplier = reader.ReadFloat("Sensitivity", "PitchMultiplier", pitchMultiplier);
     rollMultiplier = reader.ReadFloat("Sensitivity", "RollMultiplier", rollMultiplier);
 
+    localSmoothing = reader.ReadFloat("Smoothing", "LocalSmoothing", localSmoothing);
+    remoteSmoothing = reader.ReadFloat("Smoothing", "RemoteSmoothing", remoteSmoothing);
+
+    WarnRetiredSmoothingKey(reader, "Position", "Smoothing");
+
     toggleKey = reader.ReadHex("Hotkeys", "ToggleKey", toggleKey);
-    recenterKey = reader.ReadHex("Hotkeys", "RecenterKey", recenterKey);
     positionToggleKey = reader.ReadHex("Hotkeys", "PositionToggleKey", positionToggleKey);
     yawModeKey = reader.ReadHex("Hotkeys", "YawModeKey", yawModeKey);
 
@@ -71,7 +103,6 @@ bool Config::Load(const char* path) {
     positionLimitY = reader.ReadFloat("Position", "LimitY", positionLimitY);
     positionLimitZ = reader.ReadFloat("Position", "LimitZ", positionLimitZ);
     positionLimitZBack = reader.ReadFloat("Position", "LimitZBack", positionLimitZBack);
-    positionSmoothing = reader.ReadFloat("Position", "Smoothing", positionSmoothing);
     positionInvertX = reader.ReadBool("Position", "InvertX", positionInvertX);
     positionInvertY = reader.ReadBool("Position", "InvertY", positionInvertY);
     positionInvertZ = reader.ReadBool("Position", "InvertZ", positionInvertZ);
@@ -105,6 +136,14 @@ bool Config::Save(const char* path) const {
     file << "PitchMultiplier=" << pitchMultiplier << "\n";
     file << "RollMultiplier=" << rollMultiplier << "\n\n";
 
+    file << "[Smoothing]\n";
+    file << "; Smoothing applied when the tracker runs on this machine (loopback).\n";
+    file << "; 0 = no smoothing, 1 = heavy. Covers rotation and position.\n";
+    file << "LocalSmoothing=" << localSmoothing << "\n";
+    file << "; Smoothing applied when the tracker is a remote device on the network.\n";
+    file << "; 0 = no smoothing, 1 = heavy. Covers rotation and position.\n";
+    file << "RemoteSmoothing=" << remoteSmoothing << "\n\n";
+
     file << "[Position]\n";
     file << "; Position tracking sensitivity (0.1-10.0, higher = more movement)\n";
     file << "SensitivityX=" << positionSensitivityX << "\n";
@@ -115,7 +154,6 @@ bool Config::Save(const char* path) const {
     file << "LimitY=" << positionLimitY << "\n";
     file << "LimitZ=" << positionLimitZ << "\n";
     file << "LimitZBack=" << positionLimitZBack << "\n";
-    file << "Smoothing=" << positionSmoothing << "\n";
     file << "InvertX=" << (positionInvertX ? "true" : "false") << "\n";
     file << "InvertY=" << (positionInvertY ? "true" : "false") << "\n";
     file << "InvertZ=" << (positionInvertZ ? "true" : "false") << "\n";
@@ -124,7 +162,6 @@ bool Config::Save(const char* path) const {
     file << "[Hotkeys]\n";
     file << "; Virtual key codes (hex)\n";
     file << "ToggleKey=0x" << std::hex << toggleKey << "    ; End\n";
-    file << "RecenterKey=0x" << std::hex << recenterKey << "  ; Home\n";
     file << "PositionToggleKey=0x" << std::hex << positionToggleKey << " ; Page Up\n";
     file << "YawModeKey=0x" << std::hex << yawModeKey << "      ; Page Down - toggle world/local yaw\n\n";
 

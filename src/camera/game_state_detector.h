@@ -5,8 +5,6 @@ namespace RE7HT {
 // Returns true if the player is in active gameplay (not paused, menu, loading, etc.)
 bool IsInGameplay();
 
-// Returns true once after transitioning from non-gameplay to gameplay (for auto-recenter)
-bool ShouldRecenter();
 
 // Called from the GUI draw hook when a title / main-menu / loading element
 // draws. Records a timestamp the gameplay gate uses to suppress tracking over

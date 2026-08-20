@@ -73,7 +73,6 @@ Two equivalent binding sets - use whichever your keyboard has:
 
 | Action                 | Nav-cluster | Chord           |
 |------------------------|-------------|-----------------|
-| Recenter               | `Home`      | `Ctrl+Shift+T`  |
 | Toggle tracking        | `End`       | `Ctrl+Shift+Y`  |
 | Cycle tracking mode    | `Page Up`   | `Ctrl+Shift+G`  |
 | Toggle yaw mode        | `Page Down` | `Ctrl+Shift+H`  |
@@ -100,6 +99,14 @@ YawMultiplier=1.0
 PitchMultiplier=1.0
 RollMultiplier=1.0
 
+[Smoothing]
+; Smoothing applied when the tracker runs on this machine (loopback).
+; 0 = no smoothing, 1 = heavy. Covers rotation and position.
+LocalSmoothing=0.0
+; Smoothing applied when the tracker is a remote device on the network.
+; 0 = no smoothing, 1 = heavy. Covers rotation and position.
+RemoteSmoothing=0.15
+
 [Position]
 ; Position tracking sensitivity (0.1-10.0, higher = more movement)
 SensitivityX=1.0
@@ -111,8 +118,6 @@ LimitY=0.20
 LimitZ=0.40
 ; Backward lean limit (prevents camera clipping through player model)
 LimitZBack=0.10
-; Smoothing factor (0.0 = none, 0.99 = maximum)
-Smoothing=0.15
 ; Invert position axes (flip if leaning moves the view the wrong way)
 InvertX=false
 InvertY=false
@@ -121,9 +126,8 @@ InvertZ=false
 Enabled=true
 
 [Hotkeys]
-; Virtual key codes (hex). Chord alternatives: Ctrl+Shift+T/Y/G/H.
+; Virtual key codes (hex). Chord alternatives: Ctrl+Shift+Y/G/H.
 ToggleKey=0x23         ; End - Enable/disable
-RecenterKey=0x24       ; Home - Recenter view
 PositionToggleKey=0x21 ; Page Up - Cycle tracking mode
 YawModeKey=0x22        ; Page Down - Toggle world/local yaw
 
@@ -138,6 +142,11 @@ WorldSpaceYaw=true
 
 ## Troubleshooting
 
+**Sending a log:**
+- REFramework writes one log per game launch at `<game>/re2_framework_log.txt`. That generic name is used for every RE Engine title, so it is the right file for this game too. If the game folder is not writable it lands in `%APPDATA%\REFramework\<exe name>\` instead.
+- The file is truncated on every launch, so it only ever holds the current session. Attach it as-is to a bug report.
+- This mod's lines are prefixed `[RE7HT]`. The startup sequence to look for is: `Plugin loaded`, `Config loaded from ...`, `UDP receiver started on port ...`, `Initialization complete`, then `First tracker pose received: ...` once the tracker sends anything.
+
 **Mod not loading**
 - Launch the game once after installing so REFramework initializes.
 - Confirm `dinput8.dll` sits next to `re7.exe` and `RE7HeadTracking.dll` is in `reframework/plugins/`.
@@ -146,10 +155,10 @@ WorldSpaceYaw=true
 **No tracking response**
 - Confirm your tracker is sending OpenTrack UDP to `127.0.0.1:4242`.
 - Make sure tracking is enabled (press `End` or `Ctrl+Shift+Y` to toggle).
-- Press `Home` (or `Ctrl+Shift+T`) to recenter if the view has drifted off-center.
+- If the view sits off-centre, centre it in your tracker app: OpenTrack's Center bind, the CENTER button in a phone app, or your headset's own centring. The mod applies what the tracker sends and keeps no centre of its own.
 
 **Jittery or unstable tracking**
-- Raise the `Smoothing` value in `HeadTracking.ini`.
+- Raise `RemoteSmoothing` (phone or other network tracker) or `LocalSmoothing` (tracker on this PC) in the `[Smoothing]` section of `HeadTracking.ini`.
 - For wireless or phone trackers, prefer routing through OpenTrack so its filtering can settle the signal.
 
 **Yaw feels wrong at extreme up/down angles**
