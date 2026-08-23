@@ -223,15 +223,21 @@ if not exist "%GAME_PATH%\dinput8.dll" (
     exit /b 1
 )
 
-:: Flatscreen-only. The per-game nightly zip bundles VR runtime DLLs; if
-:: present, REFramework auto-loads its VR mod when a runtime is available
-:: (e.g. SteamVR installed) and takes over the camera with per-eye stereo
-:: rendering, which fights our flat head-tracking. Strip them so REFramework
-:: stays flatscreen. See https://cursey.github.io/reframework-book/ VR notes.
-for %%f in (openvr_api.dll openxr_loader.dll DELETE_OPENVR_API_DLL_IF_YOU_WANT_TO_USE_OPENXR) do (
+:: This mod is flatscreen-only: if REFramework finds a VR runtime DLL beside
+:: the game it loads its VR mod, which takes the camera over with per-eye
+:: stereo rendering and fights our flat head tracking.
+::
+:: We only warn. The REFramework.zip we bundle contains dinput8.dll and
+:: reframework_revision.txt and nothing else, so any VR runtime DLL in the game
+:: folder was put there by the user or another mod. Deleting someone else's
+:: files to suit our mod is not ours to do, and uninstall.cmd could not put
+:: them back. Tell the user what to move and let them decide.
+for %%f in (openvr_api.dll openxr_loader.dll) do (
     if exist "%GAME_PATH%\%%f" (
-        del /q "%GAME_PATH%\%%f" >nul 2>&1
-        echo   Removed VR runtime file: %%f ^(flatscreen install^)
+        echo   NOTE: %%f is present in the game folder.
+        echo         REFramework will start in VR mode, which overrides this mod's camera.
+        echo         Move it out of the game folder yourself for flatscreen head tracking.
+        echo         Nothing has been deleted.
     )
 )
 

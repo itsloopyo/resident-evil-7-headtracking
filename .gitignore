@@ -31,3 +31,17 @@ AGENTS.md
 
 # NexusMods page copy source (not shipped)
 NEXUS_MODS.md
+
+# Reverse-engineering scratch. Ignored from the outset, not after the fact:
+# once a decompiler export, trace, memory dump or screenshot is pushed, deleting
+# the branch does not unpublish it - the host keeps serving the blobs by SHA.
+tools/
+scratch/
+re/
+ghidra/
+*.gpr
+*.rep/
+dumps/
+traces/
+screenshots/
+*.dmp

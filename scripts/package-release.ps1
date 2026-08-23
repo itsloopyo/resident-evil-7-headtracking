@@ -90,24 +90,23 @@ Write-Host "  plugins/HeadTracking.ini" -ForegroundColor Green
 # time, so the loader zip + LICENSE + README must travel inside the installer ZIP.
 $ghVendorDir = Join-Path $ghStagingDir 'vendor/reframework'
 New-Item -ItemType Directory -Path $ghVendorDir -Force | Out-Null
+# All three are mandatory. The loader binary is redistributed here, so its
+# licence and provenance record are not optional extras that may be silently
+# skipped - a guarded copy would turn a licence violation into a green build.
 $vendorAssets = @('RE7.zip', 'LICENSE', 'README.md')
 foreach ($asset in $vendorAssets) {
     $src = Join-Path $vendorDir $asset
-    if (Test-Path $src) {
-        Copy-Item $src -Destination $ghVendorDir -Force
-        Write-Host "  vendor/reframework/$asset" -ForegroundColor Green
-    } elseif ($asset -eq 'RE7.zip') {
-        throw "vendor/reframework/RE7.zip is required but missing."
+    if (-not (Test-Path $src)) {
+        throw "vendor/reframework/$asset is missing. The installer ZIP redistributes the REFramework binary and must carry its licence and provenance record alongside it."
     }
+    Copy-Item $src -Destination $ghVendorDir -Force
+    Write-Host "  vendor/reframework/$asset" -ForegroundColor Green
 }
 
 # launcher-manifest.json is the file lopari reads at the installer-ZIP root.
-# RE7 stays on delivery_mode: install_cmd because install.cmd strips the
-# REFramework nightly's VR runtime DLLs to keep the install flatscreen, which
-# has no declarative equivalent (the manifest engine only supports
-# system-file-copy runtime requirements). Stamp the real release version in so
-# mod_info.version never drifts from manifest.json. (Not staged into the Nexus
-# ZIP - Nexus users do not use the launcher.)
+# Stamp the real release version in so mod_info.version never drifts from
+# manifest.json. (Not staged into the Nexus ZIP - Nexus users do not use the
+# launcher.)
 $launcherManifestPath = Join-Path $projectDir 'launcher-manifest.json'
 if (-not (Test-Path $launcherManifestPath)) {
     throw "launcher-manifest.json not found at: $launcherManifestPath"
@@ -122,10 +121,11 @@ Write-Host "  launcher-manifest.json (v$version)" -ForegroundColor Green
 $docFiles = @('README.md', 'LICENSE', 'CHANGELOG.md', 'THIRD-PARTY-NOTICES.md')
 foreach ($doc in $docFiles) {
     $docPath = Join-Path $projectDir $doc
-    if (Test-Path $docPath) {
-        Copy-Item $docPath -Destination $ghStagingDir -Force
-        Write-Host "  $doc" -ForegroundColor Green
+    if (-not (Test-Path $docPath)) {
+        throw "Required notice file not found: $doc. Every published ZIP is a binary distribution and must carry it."
     }
+    Copy-Item $docPath -Destination $ghStagingDir -Force
+    Write-Host "  $doc" -ForegroundColor Green
 }
 
 $ghZipName = "$modName-v$version-installer.zip"
@@ -167,6 +167,17 @@ if (Test-Path $nexusZipPath) { Remove-Item $nexusZipPath -Force }
 
 Write-Host ""
 Write-Host "Creating Nexus ZIP..." -ForegroundColor Cyan
+# The Nexus ZIP is a binary distribution too: the licences of everything
+# compiled into or bundled with the payload require their notices to travel
+# with it, so LICENSE and THIRD-PARTY-NOTICES.md ship at its root.
+foreach ($noticeDoc in @('LICENSE', 'THIRD-PARTY-NOTICES.md', 'README.md')) {
+    $noticeSrc = Join-Path $projectDir $noticeDoc
+    if (-not (Test-Path $noticeSrc)) {
+        throw "Required notice file not found: $noticeDoc. Every published ZIP is a binary distribution and must carry it."
+    }
+    Copy-Item $noticeSrc -Destination $nexusStagingDir -Force
+    Write-Host "  $noticeDoc" -ForegroundColor Green
+}
 Push-Location $nexusStagingDir
 try {
     Compress-Archive -Path '.\*' -DestinationPath $nexusZipPath -Force

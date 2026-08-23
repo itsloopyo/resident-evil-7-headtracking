@@ -8,7 +8,15 @@ Refresh manually with `pixi run update-deps`, then commit.
 
 - Asset: `REFramework.zip`
 - Tag: `nightly-01394-ec6c81fd39831b328027ae00e102bc9c9c3f8aa5`
-- Commit: `0436e043af6f81a5d3fef49ae27d35e63431e566`
+- Stored as: `RE7.zip` (the upstream asset is renamed on download so install.cmd,
+  deploy.ps1 and package-release.ps1 can hardcode one filename)
+- REFramework source revision: `ec6c81fd39831b328027ae00e102bc9c9c3f8aa5`
+  (read from `reframework_revision.txt` inside the archive; this is the
+  authoritative revision to attribute)
+- Publisher repo commit: `0436e043af6f81a5d3fef49ae27d35e63431e566`
+  (a commit in praydog/REFramework-nightly, the repository the nightly builds
+  are published from. It is NOT a REFramework source commit and must not be
+  quoted as one.)
 - Upstream URL: https://github.com/praydog/REFramework-nightly/releases/download/nightly-01394-ec6c81fd39831b328027ae00e102bc9c9c3f8aa5/REFramework.zip
 - SHA-256: `a3d24f04e41933a7a3a6e1d6402b7de18ca677245d9ca0dda9f6a5ca20e9b94e`
 - Fetched at: 2026-08-03T11:49:32.4081627+01:00

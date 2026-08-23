@@ -387,17 +387,31 @@ if exist "%GAME_PATH%\dinput8.dll" (
     del "%GAME_PATH%\dinput8.dll"
     echo   Removed: dinput8.dll
 )
+:: reframework/ is shared ground - every REFramework mod keeps its plugins and
+:: scripts in the same tree. Our own files came out before this routine ran, so
+:: anything still under plugins/ or autorun/ belongs to another mod, and taking
+:: the tree with us would uninstall that mod too. Only clear it when nothing
+:: foreign is left behind.
 if exist "%GAME_PATH%\reframework" (
-    rmdir /s /q "%GAME_PATH%\reframework"
-    echo   Removed: reframework/
-)
-:: VR runtime DLLs the install stripped for flatscreen mode; clean up any that
-:: an older install left behind so uninstall returns the game to vanilla.
-for %%f in (openvr_api.dll openxr_loader.dll DELETE_OPENVR_API_DLL_IF_YOU_WANT_TO_USE_OPENXR) do (
-    if exist "%GAME_PATH%\%%f" (
-        del /q "%GAME_PATH%\%%f" >nul 2>&1
-        echo   Removed: %%f
+    set "_REF_FOREIGN="
+    for %%d in (plugins autorun) do (
+        for /f "delims=" %%e in ('dir /b /a "%GAME_PATH%\reframework\%%d" 2^>nul') do set "_REF_FOREIGN=1"
     )
+    if defined _REF_FOREIGN (
+        echo   Left reframework/ in place - other mods still have files in it.
+        echo   Delete "%GAME_PATH%\reframework" by hand if you want REFramework gone.
+    ) else (
+        rmdir /s /q "%GAME_PATH%\reframework"
+        echo   Removed: reframework/
+    )
+)
+:: reframework_revision.txt comes out of the archive we bundle, so it is ours to
+:: clean up. VR runtime DLLs are not: that archive holds dinput8.dll and this
+:: marker and nothing else, so any VR runtime in the game folder was put there
+:: by the user or another mod and is not ours to delete.
+if exist "%GAME_PATH%\reframework_revision.txt" (
+    del /q "%GAME_PATH%\reframework_revision.txt" >nul 2>&1
+    echo   Removed: reframework_revision.txt
 )
 exit /b 0
 
