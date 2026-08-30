@@ -1,15 +1,15 @@
+# Resident Evil 7 Head Tracking
+
+![Resident Evil 7 biohazard running with this mod](https://raw.githubusercontent.com/itsloopyo/resident-evil-7-headtracking/main/assets/readme-clip.gif)
+
+An unofficial head tracking mod for Resident Evil 7 biohazard that moves the view with your head while your mouse or controller keeps aiming, driven by OpenTrack over UDP, with no VR headset required.
+
 > [!CAUTION]
 > ## Experimental prototype - expect missing core features
 >
 > This is **not** a finished mod.
 >
 > Current builds may only test whether head tracking can drive the camera. Bug fixes and core features like decoupled look/aim, independent reticle behavior, correct shot direction, off-screen reticle support, movement handling, and comfort tuning may be missing at this early stage of development.
-
-# Resident Evil 7 Head Tracking
-
-Decoupled head tracking for Resident Evil 7 biohazard: your head moves the view while the mouse or controller still controls aim, so you can look around the room with your gun pointed where you want it, no VR headset required.
-
-<!-- ![Mod GIF](https://raw.githubusercontent.com/itsloopyo/resident-evil-7-headtracking/main/assets/readme-clip.gif) -->
 
 ## Features
 
@@ -47,25 +47,64 @@ The Nexus release ZIP contains only this `reframework/` subtree, ready to extrac
 
 ## Setting Up OpenTrack
 
-In OpenTrack, set the output to **UDP over network**, host `127.0.0.1`, port `4242`. Map yaw, pitch, and roll (and optionally x, y, z for 6DOF). Leave sensitivities at 1:1 and let the in-game config handle scaling.
+The mod listens for OpenTrack pose data on UDP port `4242`, on every network
+interface. One datagram is six little-endian 64-bit floats in the order
+`x, y, z, yaw, pitch, roll`: position in centimetres, rotation in degrees, 48
+bytes in total. Anything that sends that to that port drives the view.
+OpenTrack's **UDP over network** output sends exactly this, and the steps below
+set it up.
 
-### VR Headset Setup
+1. Install [OpenTrack](https://github.com/opentrack/opentrack/releases).
+2. Pick a tracker under **Input**, using the notes below.
+3. Set **Output** to **UDP over network**, host `127.0.0.1`, port `4242`.
+4. Press **Start**. Tracking and the game can start in either order.
 
-You can use a VR headset purely as a head tracker (no VR rendering in-game):
+### Webcam
 
-1. Connect your headset via Air Link or Virtual Desktop and start SteamVR.
-2. In OpenTrack, choose the **SteamVR** input.
-3. Set the OpenTrack output to UDP `127.0.0.1:4242` as above.
+OpenTrack ships a `neuralnet tracker` input that reads a plain webcam. Select it
+under **Input**, pick your camera in its settings, and use the output settings
+above. How well it tracks depends on your camera and your lighting, so try it
+before buying anything.
 
-### Webcam Setup
+### Phone
 
-1. In OpenTrack, choose the **neuralnet tracker** input.
-2. Select your webcam and follow OpenTrack's on-screen centering.
-3. Set the output to UDP `127.0.0.1:4242`.
+A phone app can reach the mod directly, with no OpenTrack on the PC, if it sends
+the datagram described above. Point it at this PC's IP address (run `ipconfig`
+to find it) on port `4242`. Not every phone tracker speaks this protocol, so
+check yours for an OpenTrack or UDP output option first. [Headcam](https://headcam.app)
+sends it, and I wrote it so decent tracking is free for anyone who already owns
+a phone.
 
-### Phone App Setup
+Sending direct works when the app filters its own signal on the device. The
+mod's smoothing is sized to take the edge off a clean signal rather than to
+rescue a noisy one, so a raw feed sent direct will jitter. If it does, point the
+app at OpenTrack's **UDP over network** *input* on some other port, say 5252,
+and let OpenTrack's filters and curves clean it up before its output forwards to
+`127.0.0.1:4242`.
 
-If your phone tracking app already smooths its output, point it directly at your PC's IP on port `4242`. If you want OpenTrack's curve mapping and filtering, send from the phone into OpenTrack first, then relay OpenTrack's output to `127.0.0.1:4242`.
+Anything arriving from outside `127.0.0.0/8` counts as a remote connection and
+is smoothed with `RemoteSmoothing` rather than `LocalSmoothing`. That includes a
+tracker on this very PC that sends to the machine's own LAN address, because the
+mod reads the source address and not the machine.
+
+### Headset or other hardware
+
+If your device has an OpenTrack input driver, select it under **Input** and use
+the same output settings. OpenTrack's own **Input** list is the authority on
+what it can read; the mod only ever sees what OpenTrack sends.
+
+### Centring
+
+Centring belongs to your tracker. The mod subtracts no centre of its own: it
+applies the pose it receives exactly as it arrives, so a stream of zeros holds
+the view where the game itself puts it. Press the centre control in your tracker
+(OpenTrack's **Center** bind, or the CENTER button in Headcam) and the tracker
+zeroes its own output, which leaves the view centred with the mod doing nothing.
+
+That is why there is no centre hotkey here and nothing to re-centre in game. Two
+centres in series would drift apart, because each side re-centres at moments the
+other cannot see, and you would end up pressing twice to centre once. If the
+view sits off to one side, centre it in the tracker.
 
 ## Controls
 
