@@ -2,32 +2,49 @@
 
 #include <reframework/API.hpp>
 
-#include "core/mod.h"
-#include "core/logger.h"
-#include "camera/camera_hook.h"
+#include "camera/game_state_detector.h"
+#include "camera/gui_compensation.h"
+#include "core/config.h"
 
-#include <cameraunlock/input/hotkey_poller.h>
-#include <cameraunlock/input/chord_hotkeys.h>
-#include <cameraunlock/reframework/game_window.h>
-#include <cameraunlock/reframework/log_callback.h>
+#include <cameraunlock/reframework/gameplay_gate.h>
+#include <cameraunlock/reframework/gui_elements.h>
+#include <cameraunlock/reframework/plugin_bootstrap.h>
 
-using cameraunlock::input::NavGuarded;
-using cameraunlock::input::ChordGuarded;
+namespace ref = cameraunlock::reframework;
 
-static cameraunlock::input::HotkeyPoller g_hotkeyPoller;
+namespace {
 
-static void OnPreBeginRendering() {
-    cameraunlock::reframework::CenterGameWindowOnce();
-    RE7HT::OnPreBeginRendering();
-}
+// Fast-path candidates; app.PlayerCamera.lateUpdate is the confirmed hook point
+// on RE7. The hooker's parent-chain walk discovers the real controller
+// dynamically and logs the component tree if none of these match.
+const char* const kControllerTypeCandidates[] = {
+    "app.PlayerCamera",
+    "app.camera.PlayerCamera",
+    "app.PlayerCameraController",
+    "app.camera.PlayerCameraController",
+    "app.CameraManager",
+    "app.camera.CameraManager",
+};
 
-static void OnPostBeginRendering() {
-    RE7HT::OnPostBeginRendering();
-}
+// RE7 compensates world-anchored markers only - it has no reticle to place - so
+// the pipeline computes the rotation-only tangents and skips the aim
+// projection entirely.
+const ref::PluginBootstrapDescriptor kPlugin = [] {
+    ref::PluginBootstrapDescriptor d;
+    d.logTag = "RE7HT";
+    d.mod.displayName = RE7HT::RE7HT_PLUGIN_NAME;
+    d.mod.version = RE7HT::RE7HT_VERSION;
+    d.mod.config = RE7HT::kConfigSchema;
+    d.camera.controllerCandidateTypes = kControllerTypeCandidates;
+    d.camera.controllerCandidateCount =
+        static_cast<int>(std::size(kControllerTypeCandidates));
+    d.camera.gate = RE7HT::GameplayGateInstance();
+    d.camera.onInit = []() { ref::InitGuiMethods(); };
+    d.preGuiDrawElement = &RE7HT::OnPreGuiDrawElement;
+    return d;
+}();
 
-static bool OnPreGuiDrawElement(void* element, void* context) {
-    return RE7HT::OnPreGuiDrawElement(element, context);
-}
+} // namespace
 
 // --- REFramework plugin exports ---
 
@@ -42,57 +59,5 @@ void reframework_plugin_required_version(REFrameworkPluginVersion* version) {
 extern "C" __declspec(dllexport)
 bool reframework_plugin_initialize(const REFrameworkPluginInitializeParam* param) {
     if (!param) return false;
-
-    // Initialize REFramework SDK wrapper
-    reframework::API::initialize(param);
-
-    // Set up logging via REFramework's log functions
-    RE7HT::Logger::Instance().SetREFunctions(
-        param->functions->log_info,
-        param->functions->log_warn,
-        param->functions->log_error
-    );
-
-    // Bridge shared library logging to REFramework's log functions
-    cameraunlock::reframework::SetLogCallback([](cameraunlock::reframework::LogLevel level, const char* msg) {
-        switch (level) {
-            case cameraunlock::reframework::LogLevel::Warning:
-                RE7HT::Logger::Instance().Warning("%s", msg); break;
-            case cameraunlock::reframework::LogLevel::Error:
-                RE7HT::Logger::Instance().Error("%s", msg); break;
-            default:
-                RE7HT::Logger::Instance().Info("%s", msg); break;
-        }
-    });
-
-    RE7HT::Logger::Instance().Info("%s v%s - Plugin loaded", RE7HT::RE7HT_PLUGIN_NAME, RE7HT::RE7HT_VERSION);
-
-    // Initialize mod (tracking pipeline, UDP receiver)
-    if (!RE7HT::Mod::Instance().Initialize()) {
-        RE7HT::Logger::Instance().Error("Mod initialization failed");
-        return false;
-    }
-
-    param->functions->on_pre_application_entry("BeginRendering", OnPreBeginRendering);
-    param->functions->on_post_application_entry("BeginRendering", OnPostBeginRendering);
-    param->functions->on_pre_gui_draw_element(OnPreGuiDrawElement);
-
-    // Set up hotkeys
-    auto& config = RE7HT::Mod::Instance().GetConfig();
-
-    // Nav-cluster bindings (End / Page Up / Page Down). The mode cycle is deferred
-    // to the render thread (see Mod::ProcessDeferredActions).
-    g_hotkeyPoller.SetToggleKey(config.toggleKey, NavGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
-    g_hotkeyPoller.AddHotkey(config.positionToggleKey, NavGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
-    g_hotkeyPoller.AddHotkey(config.yawModeKey, NavGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));
-
-    // Ctrl+Shift+<letter> chord bindings (CLAUDE.md T/Y/U/G/H/J cluster).
-    g_hotkeyPoller.AddHotkey('Y', ChordGuarded([] { RE7HT::Mod::Instance().Toggle(); }));
-    g_hotkeyPoller.AddHotkey('G', ChordGuarded([] { RE7HT::Mod::Instance().RequestCycleTrackingMode(); }));
-    g_hotkeyPoller.AddHotkey('H', ChordGuarded([] { RE7HT::Mod::Instance().ToggleYawMode(); }));
-
-    g_hotkeyPoller.Start();
-
-    RE7HT::Logger::Instance().Info("Plugin initialization complete");
-    return true;
+    return ref::InitializePlugin(param, kPlugin);
 }

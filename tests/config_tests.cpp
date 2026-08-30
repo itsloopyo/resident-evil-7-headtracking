@@ -47,6 +47,12 @@ void WritePortIni(const std::string& path, const char* portValue) {
 
 int RunConfigTests() {
     using RE7HT::Config;
+    constexpr auto& kSchema = RE7HT::kConfigSchema;
+
+    // Default-constructed and SetDefaults() must agree for this schema, which
+    // is what every "defaults" check below relies on.
+    Config schemaDefaults;
+    schemaDefaults.SetDefaults(kSchema);
 
     std::cout << "Config tests\n";
 
@@ -56,7 +62,7 @@ int RunConfigTests() {
     {
         WritePortIni(path, "5555");
         Config cfg;
-        Check(cfg.Load(path.c_str()), "valid config loads");
+        Check(cfg.Load(path.c_str(), kSchema), "valid config loads");
         Check(cfg.udpPort == 5555, "in-range port honoured");
     }
 
@@ -64,29 +70,29 @@ int RunConfigTests() {
     {
         WritePortIni(path, "70000");
         Config cfg;
-        cfg.Load(path.c_str());
-        Check(cfg.udpPort == RE7HT::DEFAULT_UDP_PORT, "out-of-range high port -> default (no silent wrap)");
+        cfg.Load(path.c_str(), kSchema);
+        Check(cfg.udpPort == cameraunlock::reframework::kDefaultUdpPort, "out-of-range high port -> default (no silent wrap)");
     }
 
     // Reserved low port falls back to default.
     {
         WritePortIni(path, "500");
         Config cfg;
-        cfg.Load(path.c_str());
-        Check(cfg.udpPort == RE7HT::DEFAULT_UDP_PORT, "reserved low port -> default");
+        cfg.Load(path.c_str(), kSchema);
+        Check(cfg.udpPort == cameraunlock::reframework::kDefaultUdpPort, "reserved low port -> default");
     }
 
     // Defaults: local is zero-latency, remote carries the 0.15 the old baseline
     // floor used. A configured zero must survive Validate() - there is no floor.
     {
-        const Config defaults;
+        const Config& defaults = schemaDefaults;
         Check(defaults.localSmoothing == 0.0f, "default local smoothing is 0.0");
         Check(defaults.remoteSmoothing == 0.15f, "default remote smoothing is 0.15");
 
         Config cfg;
         cfg.localSmoothing = 0.0f;
         cfg.remoteSmoothing = 0.0f;
-        cfg.Validate();
+        cfg.Validate(kSchema);
         Check(cfg.localSmoothing == 0.0f, "zero local smoothing not floored");
         Check(cfg.remoteSmoothing == 0.0f, "zero remote smoothing not floored");
     }
@@ -99,7 +105,7 @@ int RunConfigTests() {
         cfg.rollMultiplier = 50.0f;    // above max 2.0
         cfg.localSmoothing = 5.0f;     // above max 1.0
         cfg.remoteSmoothing = -1.0f;   // below min 0.0
-        cfg.Validate();
+        cfg.Validate(kSchema);
         Check(cfg.yawMultiplier == 5.0f, "yaw multiplier clamped to max");
         Check(cfg.pitchMultiplier == 0.1f, "pitch multiplier clamped to min");
         Check(cfg.rollMultiplier == 2.0f, "roll multiplier clamped to max");
@@ -112,7 +118,7 @@ int RunConfigTests() {
     // INI poisons the sin/cos/view-matrix math. Every float field must come out
     // finite and in-range, falling back to its default.
     {
-        const Config defaults;
+        const Config& defaults = schemaDefaults;
         Config cfg;
         const float kNaN = std::nanf("");
         const float kInf = std::numeric_limits<float>::infinity();
@@ -128,7 +134,7 @@ int RunConfigTests() {
         cfg.positionLimitZBack = kInf;
         cfg.localSmoothing = kNaN;
         cfg.remoteSmoothing = kInf;
-        cfg.Validate();
+        cfg.Validate(kSchema);
 
         Check(std::isfinite(cfg.yawMultiplier), "NaN yaw multiplier sanitized to finite");
         Check(std::isfinite(cfg.pitchMultiplier), "Inf pitch multiplier sanitized to finite");
@@ -158,7 +164,7 @@ int RunConfigTests() {
         f.close();
 
         Config cfg;
-        cfg.Load(path.c_str());
+        cfg.Load(path.c_str(), kSchema);
         Check(std::isfinite(cfg.yawMultiplier), "INI 'nan' yaw multiplier sanitized");
         Check(std::isfinite(cfg.pitchMultiplier), "INI overflow pitch multiplier sanitized");
     }

@@ -1,14 +1,18 @@
 #pragma once
 
+namespace cameraunlock::reframework { class GameplayGate; }
+
 namespace RE7HT {
 
-// Returns true if the player is in active gameplay (not paused, menu, loading, etc.)
+// The gate the camera pipeline consults before writing the camera.
+cameraunlock::reframework::GameplayGate* GameplayGateInstance();
+
+// True while the player is in active gameplay (not paused, in a menu, loading,
+// or in a cutscene).
 bool IsInGameplay();
 
-
-// Called from the GUI draw hook when a title / main-menu / loading element
-// draws. Records a timestamp the gameplay gate uses to suppress tracking over
-// the menu's live 3D backdrop (which otherwise passes every other tier).
+// A title / main-menu / loading GUI element drew this frame. Called from the
+// GUI draw hook; see the note in the .cpp for why this signal is needed.
 void NotifyMainMenuDrawn();
 
 } // namespace RE7HT

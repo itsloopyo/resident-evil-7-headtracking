@@ -24,10 +24,7 @@ add_subdirectory(cameraunlock-core/cpp ${CMAKE_BINARY_DIR}/cameraunlock-core)
 add_library(RE7HeadTracking SHARED
     src/pch.cpp
     src/plugin_main.cpp
-    src/core/mod.cpp
-    src/core/config.cpp
-    src/core/logger.cpp
-    src/camera/camera_hook.cpp
+    src/camera/gui_compensation.cpp
     src/camera/game_state_detector.cpp
 )
 
@@ -54,14 +51,12 @@ if(RE7HT_BUILD_TESTS)
     add_executable(re7ht_tests
         tests/test_main.cpp
         tests/config_tests.cpp
-        src/core/config.cpp
-        src/core/logger.cpp
     )
     target_include_directories(re7ht_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/extern
     )
-    target_link_libraries(re7ht_tests PRIVATE cameraunlock ws2_32)
+    target_link_libraries(re7ht_tests PRIVATE cameraunlock cameraunlock_reframework ws2_32)
     enable_testing()
     add_test(NAME re7ht_tests COMMAND re7ht_tests)
 endif()
