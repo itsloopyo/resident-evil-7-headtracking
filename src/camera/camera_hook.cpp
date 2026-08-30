@@ -32,6 +32,10 @@ static CleanCameraMatrix g_cleanCameraMatrix;
 // Per-frame flag: set true when OnPreBeginRendering applies head tracking.
 static bool g_trackingAppliedThisFrame = false;
 
+// Bumped once per processed render frame. The GUI draw callbacks fire during
+// that same frame, so this is the key the focal-length memo invalidates on.
+static uint64_t g_renderFrame = 0;
+
 // Saved game rotation - what the game INTENDED before we modified it
 static struct {
     Matrix4x4f gameMatrix;
@@ -55,9 +59,12 @@ static void* GetCameraTransformCached() {
 // World-anchored GUI marker compensation: the rotation-only screen-space shift
 // of the clean view forward under head rotation, smoothed. Read by the GUI draw
 // hook to reposition interaction/objective markers so they stay glued to their
-// world target while the head turns the view. (OnPostBeginRendering keeps the
-// head-tracked position, so translation parallax is already handled by the
-// engine; only rotation needs compensating.)
+// world target while the head turns the view.
+//
+// No lean term, deliberately. Parallax is lean/depth, a marker sits at its own
+// depth, and one write to a marker's root View cannot express a per-depth
+// value. What that leaves uncorrected fades with distance, and markers are
+// mostly distant.
 struct MarkerProjection {
     float tanRight = 0.0f;
     float tanUp = 0.0f;
@@ -244,6 +251,7 @@ void OnPreBeginRendering() {
     if (!Mod::Instance().IsEnabled()) return;
     if (!IsInGameplay()) return;
     EnsureCameraControllerHooked();
+    ++g_renderFrame;
 
     // Advance interpolation + smoothing once per render frame so the
     // rendered camera and the smoother see the same wall-clock dt.
@@ -276,12 +284,20 @@ void OnPostBeginRendering() {
     Matrix4x4f* worldMat = GetCameraWorldMatrixGuarded();
     if (!worldMat) return;
     __try {
-        // Restore clean ROTATION but keep head-tracked POSITION.
-        Matrix4x4f restored = g_cleanCameraMatrix.matrix;
-        restored.m[3][0] = worldMat->m[3][0];
-        restored.m[3][1] = worldMat->m[3][1];
-        restored.m[3][2] = worldMat->m[3][2];
-        *worldMat = restored;
+        // Restore the clean camera in full - POSITION as well as rotation.
+        //
+        // Keeping the head-tracked translation row left the game aiming off a
+        // leaned eye: the shot converges on the leaned eye's axis while the
+        // round leaves the un-leaned body, so reticle and impact agree at
+        // exactly one range and splay apart either side of it, swapping sides
+        // as the player walks through it. Head tracking must not move where
+        // bullets go.
+        //
+        // The lean still renders. Rotation is written and taken back at the
+        // same two hooks and rotation is what the player sees, so the camera
+        // matrix the renderer consumes is snapshotted between them; the
+        // translation row is in that same matrix.
+        *worldMat = g_cleanCameraMatrix.matrix;
     } __except(EXCEPTION_EXECUTE_HANDLER) {}
 
     g_cachedTransform = nullptr;
@@ -371,6 +387,26 @@ static bool ComputeMarkerFocalLengths(float& fx, float& fy) {
     return cameraunlock::rendering::FocalLengthsFromVerticalFov(fov, kHalfW, kHalfH, fx, fy);
 }
 
+// Per-frame memo over ComputeMarkerFocalLengths. The camera's projection is
+// fixed for a rendered frame, but the draw callback fires once per compensated
+// marker, and each call would otherwise re-resolve the camera and pull its
+// projection matrix across the managed VM for an identical answer.
+static bool GetMarkerFocalLengthsCached(float& fx, float& fy) {
+    static uint64_t s_frame = static_cast<uint64_t>(-1);
+    static bool s_ok = false;
+    static float s_fx = 0.f;
+    static float s_fy = 0.f;
+
+    if (s_frame != g_renderFrame) {
+        s_frame = g_renderFrame;
+        s_ok = ComputeMarkerFocalLengths(s_fx, s_fy);
+    }
+    if (!s_ok) return false;
+    fx = s_fx;
+    fy = s_fy;
+    return true;
+}
+
 // RE7's title / main-menu / loading GUI elements. They render over a live 3D
 // backdrop that otherwise passes every gameplay tier, so their presence is the
 // one reliable "not gameplay" signal. Names captured from the discovery log.
@@ -398,14 +434,13 @@ static bool IsWorldMarker(const char* goName) {
 
 // Shift a world-anchored marker's root View to the head-tracked screen position
 // of its clean-view world target, gluing it back onto the subject. See
-// UpdateMarkerProjection / OnPostBeginRendering for why only rotation is
-// compensated (translation parallax is already handled by the engine).
+// UpdateMarkerProjection for why only rotation is compensated.
 static void ApplyMarkerCompensation(reframework::API::ManagedObject* guiMo) {
     if (!guiMo || !g_guiMethods.transformSetPosition) return;
     if (!g_marker.valid || !IsInGameplay()) return;
 
     float fx = 0.f, fy = 0.f;
-    if (!ComputeMarkerFocalLengths(fx, fy)) return;
+    if (!GetMarkerFocalLengthsCached(fx, fy)) return;
 
     float deltaX = -g_marker.tanRight * fx;
     float deltaY =  g_marker.tanUp * fy;

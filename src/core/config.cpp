@@ -35,12 +35,6 @@ void Config::Validate() {
     positionLimitY = SanitizeFinite(positionLimitY, kDefaults.positionLimitY, 0.01f, 2.0f);
     positionLimitZ = SanitizeFinite(positionLimitZ, kDefaults.positionLimitZ, 0.01f, 2.0f);
     positionLimitZBack = SanitizeFinite(positionLimitZBack, kDefaults.positionLimitZBack, 0.01f, 2.0f);
-
-    if (udpPort < 1024) {
-        Logger::Instance().Warning("UDP port %d is in reserved range, using default %d",
-                                   udpPort, DEFAULT_UDP_PORT);
-        udpPort = DEFAULT_UDP_PORT;
-    }
 }
 
 // Warned once per process rather than once per load: config is reloadable, and

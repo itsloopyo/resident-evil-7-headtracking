@@ -2,8 +2,6 @@
 #include "mod.h"
 #include "logger.h"
 
-#include <algorithm>
-#include <cameraunlock/time/qpc_clock.h>
 
 namespace RE7HT {
 
@@ -16,14 +14,6 @@ using cameraunlock::TrackingMode;
 // silently pin every connection to LocalSmoothing forever.
 static_assert(cameraunlock::HeadTrackingSession<cameraunlock::UdpReceiver>::kHasRemoteConnection,
               "receiver must expose IsRemoteConnection() or remote smoothing never applies");
-
-
-constexpr float kMicrosPerSecond = 1000000.0f;
-
-// Frame-timing bounds for the per-frame interpolation/smoothing tick.
-constexpr float kSeedFrameDeltaSeconds = 0.016f;  // ~60fps seed until a real interval is measured
-constexpr float kMinFrameDeltaSeconds = 0.0001f;  // floor: avoid div-by-zero / runaway extrapolation
-constexpr float kMaxFrameDeltaSeconds = 0.1f;     // ceiling: a hitch must not snap the view
 
 Mod& Mod::Instance() {
     static Mod instance;
@@ -86,21 +76,18 @@ bool Mod::Initialize() {
     // the forward range and limit_z_back restricts leaning back into the player.
     posSettings.limit_z = m_config.positionLimitZ;
     posSettings.limit_z_back = m_config.positionLimitZBack;
-    // Position smoothing lives on the settings; the processor picks between the
-    // two per connection from the flag the session feeds it.
-    posSettings.local_smoothing = m_config.localSmoothing;
-    posSettings.remote_smoothing = m_config.remoteSmoothing;
     posSettings.invert_x = m_config.positionInvertX;
     posSettings.invert_y = m_config.positionInvertY;
     posSettings.invert_z = m_config.positionInvertZ;
-    m_session.GetPositionProcessor().SetSettings(posSettings);
 
-    // Rotation smoothing. The session setter also re-writes the two values into
-    // the position settings above, so it has to run after SetSettings; the
-    // values are identical either way, which keeps rotation and position from
-    // ever drifting apart.
+    // Smoothing first, then the settings. The session owns the smoothing pair
+    // for both rotation and position, and SetPositionSettings stamps the owned
+    // pair over whatever the struct carries - so the struct deliberately leaves
+    // local_smoothing / remote_smoothing at their defaults and the two can
+    // never drift apart.
     m_session.SetLocalSmoothing(m_config.localSmoothing);
     m_session.SetRemoteSmoothing(m_config.remoteSmoothing);
+    m_session.SetPositionSettings(posSettings);
 
     // The previous per-mod pipeline never engaged tracker pivot compensation
     // (it passed radians to a degrees API, zeroing the artifact). Keep that
@@ -189,16 +176,8 @@ void Mod::ProcessDeferredActions() {
 void Mod::TickFrame() {
     if (!m_initialized.load()) return;
 
-    uint64_t now = cameraunlock::time::QpcNowMicros();
-    float deltaTime = kSeedFrameDeltaSeconds;
-    if (m_lastFrameTickTime > 0) {
-        deltaTime = (now - m_lastFrameTickTime) / kMicrosPerSecond;
-        deltaTime = std::clamp(deltaTime, kMinFrameDeltaSeconds, kMaxFrameDeltaSeconds);
-    }
-    m_lastFrameTickTime = now;
-    m_lastDeltaTime = deltaTime;
-
-    if (!m_session.Update(deltaTime)) return;
+    m_lastDeltaTime = m_frameClock.Tick();
+    m_session.Update(m_lastDeltaTime);
 }
 
 void Mod::LogFirstTrackerPose() {

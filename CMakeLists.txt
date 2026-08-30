@@ -10,23 +10,12 @@ if(WIN32)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# MinHook for native function detouring
-include(FetchContent)
-# Pinned to an exact commit for reproducible, supply-chain-safe builds.
-# A floating ref (master) would let upstream changes flow into release
-# binaries silently. The last release tag (v1.3.3) predates MinHook's CMake
-# support, so a master commit is required; bump deliberately with a build +
-# test. This commit ("Add support for VS2026") is master HEAD as of 2026-05.
-FetchContent_Declare(
-    minhook
-    GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git
-    GIT_TAG        05c06c5bbca226b72ffb40fc0caaef33bcaf6f74
-)
-FetchContent_MakeAvailable(minhook)
-
-# cameraunlock-core shared library (static) with hook manager + REFramework utils
+# cameraunlock-core shared library (static) with REFramework utils.
+# No hook manager: this plugin detours nothing natively - every hook it
+# installs goes through REFramework's own plugin API - so CAMERAUNLOCK_BUILD_HOOKS
+# would only pull MinHook off GitHub at configure time and break a firewalled
+# build for a library nothing links against.
 set(CAMERAUNLOCK_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(CAMERAUNLOCK_BUILD_HOOKS ON CACHE BOOL "" FORCE)
 set(CAMERAUNLOCK_BUILD_REFRAMEWORK ON CACHE BOOL "" FORCE)
 set(CAMERAUNLOCK_REFRAMEWORK_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern" CACHE STRING "" FORCE)
 add_subdirectory(cameraunlock-core/cpp ${CMAKE_BINARY_DIR}/cameraunlock-core)
@@ -51,7 +40,7 @@ set_target_properties(RE7HeadTracking PROPERTIES
 )
 
 target_link_libraries(RE7HeadTracking PRIVATE
-    cameraunlock cameraunlock_hooks cameraunlock_reframework ws2_32)
+    cameraunlock cameraunlock_reframework ws2_32)
 
 target_include_directories(RE7HeadTracking PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
