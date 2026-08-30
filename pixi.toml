@@ -20,6 +20,13 @@ update-deps = "powershell -ExecutionPolicy Bypass -File scripts/update-deps.ps1"
 build         = { cmd = "cmake --build build --config Debug",   depends-on = ["setup"] }
 build-release = { cmd = "cmake --build build --config Release", depends-on = ["setup"] }
 
+# Build and run the host-side unit tests. Separate build dir so the plugin
+# build tree is untouched. Split into chained tasks so a configure or build
+# failure stops the run instead of letting ctest execute a stale test binary.
+test-configure = "cmake -B build-tests -A x64 -DRE7HT_BUILD_TESTS=ON"
+test-build = { cmd = "cmake --build build-tests --config Debug --target re7ht_tests", depends-on = ["test-configure"] }
+test = { cmd = "ctest --test-dir build-tests -C Debug --output-on-failure", depends-on = ["test-build"] }
+
 deploy  = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 Debug",   depends-on = ["build"] }
 install = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 Release", depends-on = ["build-release"] }
 

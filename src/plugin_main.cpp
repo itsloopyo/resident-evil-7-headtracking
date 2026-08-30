@@ -39,6 +39,7 @@ const ref::PluginBootstrapDescriptor kPlugin = [] {
     d.camera.controllerCandidateCount =
         static_cast<int>(std::size(kControllerTypeCandidates));
     d.camera.gate = RE7HT::GameplayGateInstance();
+    d.centerGameWindow = true;
     d.camera.onInit = []() { ref::InitGuiMethods(); };
     d.preGuiDrawElement = &RE7HT::OnPreGuiDrawElement;
     return d;

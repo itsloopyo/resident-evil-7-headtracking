@@ -101,14 +101,14 @@ int RunConfigTests() {
     {
         Config cfg;
         cfg.yawMultiplier = 99.0f;     // above max 5.0
-        cfg.pitchMultiplier = -1.0f;   // below min 0.1
-        cfg.rollMultiplier = 50.0f;    // above max 2.0
+        cfg.pitchMultiplier = -1.0f;   // below min 0.0
+        cfg.rollMultiplier = 50.0f;    // above max 5.0
         cfg.localSmoothing = 5.0f;     // above max 1.0
         cfg.remoteSmoothing = -1.0f;   // below min 0.0
         cfg.Validate(kSchema);
         Check(cfg.yawMultiplier == 5.0f, "yaw multiplier clamped to max");
-        Check(cfg.pitchMultiplier == 0.1f, "pitch multiplier clamped to min");
-        Check(cfg.rollMultiplier == 2.0f, "roll multiplier clamped to max");
+        Check(cfg.pitchMultiplier == 0.0f, "pitch multiplier clamped to min");
+        Check(cfg.rollMultiplier == 5.0f, "roll multiplier clamped to max");
         Check(cfg.localSmoothing == 1.0f, "local smoothing clamped to max");
         Check(cfg.remoteSmoothing == 0.0f, "remote smoothing clamped to min");
     }

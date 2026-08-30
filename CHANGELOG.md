@@ -19,6 +19,20 @@ as rolling dev builds until the first tagged release.
 - Troubleshooting now spells out the startup lines to look for in `re2_framework_log.txt`.
 
 ### Changed
+- `Page Up` / `Ctrl+Shift+G` turns positional tracking off and on again instead
+  of cycling three modes. The third mode disabled head rotation, and it sat
+  directly after the mode a `[Position] Enabled=false` config starts in, so one
+  press of a key labelled "toggle position" switched head rotation off.
+- Close-range interaction prompts (`InteractPointGuide`) now follow their world
+  target when you lean, not only when you turn your head. The frame is drawn
+  from the leaned eye while the game projects the prompt's anchor from the
+  un-leaned one, and the gap is lean divided by distance: a 0.30 m lateral lean
+  put a 3 m prompt about 70 px off its target on a 1920x1080 canvas. The
+  correction assumes a 3 m anchor, so it is exact at that range and still an
+  improvement at anything closer than 6 m. Objective and far-icon markers are
+  unchanged.
+- The game window is centred on the first rendered frame again. That call was
+  dropped when the plugin moved onto the shared driver.
 - Recentring is gone entirely: the `Home` / `Ctrl+Shift+T` hotkey, the
   `RecenterKey` ini entry, and the mod's own centre. Your tracker owns the
   centre now. Set it there, with OpenTrack's Center bind, the CENTER button in
@@ -40,5 +54,5 @@ as rolling dev builds until the first tagged release.
   interpolation.
 - Game-state detection to suppress tracking in menus, pauses, loading, and
   cutscenes.
-- Hotkeys: End (toggle), Page Up (cycle tracking mode), Page Down (toggle
+- Hotkeys: End (toggle), Page Up (toggle positional tracking), Page Down (toggle
   world/local yaw); plus Ctrl+Shift+Y/G/H chord alternatives.
