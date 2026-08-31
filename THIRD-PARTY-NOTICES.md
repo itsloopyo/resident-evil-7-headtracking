@@ -16,7 +16,7 @@ so before that commit lands.
 |-----------|---------|---------|--------------|
 | REFramework (loader binary) | `ec6c81fd39831b328027ae00e102bc9c9c3f8aa5` | MIT | Bundled verbatim in the installer ZIP |
 | REFramework (plugin SDK headers) | `ec6c81fd39831b328027ae00e102bc9c9c3f8aa5` | MIT | Copied into `extern/reframework/`; compiled into `RE7HeadTracking.dll` |
-| cameraunlock-core | `67a82e334bcf32979d17965eab4b0f37a48a6ad0` | MIT | Compiled into `RE7HeadTracking.dll` |
+| cameraunlock-core | `fec3b4c8a6fe9c45401cf65d3d43d4f5acd22b72` | MIT | Compiled into `RE7HeadTracking.dll` |
 | OpenTrack | n/a | ISC | Not bundled; UDP protocol interoperability only |
 
 ---
@@ -88,7 +88,7 @@ SOFTWARE.
 Git submodule at `cameraunlock-core/`, compiled into `RE7HeadTracking.dll`. Our own code,
 MIT licensed, reproduced here so the notices are complete.
 
-- Pinned commit: `67a82e334bcf32979d17965eab4b0f37a48a6ad0`
+- Pinned commit: `fec3b4c8a6fe9c45401cf65d3d43d4f5acd22b72`
 
 ```
 MIT License
