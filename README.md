@@ -15,6 +15,7 @@ An unofficial head tracking mod for Resident Evil 7 biohazard that moves the vie
 
 - **Decoupled look and aim** - head tracking moves the camera while your mouse or controller still controls aim.
 - **6DOF positional tracking** - lean and peek by moving your head in space.
+- **Works with any OpenTrack compatible tracker** - free options available for PC, iOS and Android
 
 ## Requirements
 
@@ -23,6 +24,13 @@ An unofficial head tracking mod for Resident Evil 7 biohazard that moves the vie
 - Windows 10 or 11 (64-bit).
 
 ## Installation
+
+### Lopari
+
+Once this mod is available in Lopari, download [Lopari](https://lopari.app), choose **Resident Evil 7 biohazard**, and click
+**Play with head tracking**.
+
+### Standalone Installer
 
 1. Download the latest `RE7HeadTracking-vX.Y.Z-installer.zip` from the [Releases page](https://github.com/itsloopyo/resident-evil-7-headtracking/releases).
 2. Extract it anywhere.
