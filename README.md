@@ -2,14 +2,7 @@
 
 ![Resident Evil 7 biohazard running with this mod](https://raw.githubusercontent.com/itsloopyo/resident-evil-7-headtracking/main/assets/readme-clip.gif)
 
-An unofficial head tracking mod for Resident Evil 7 biohazard that moves the view with your head while your mouse or controller keeps aiming, driven by OpenTrack over UDP, with no VR headset required.
-
-> [!CAUTION]
-> ## Experimental prototype - expect missing core features
->
-> This is **not** a finished mod.
->
-> Current builds may only test whether head tracking can drive the camera. Bug fixes and core features like decoupled look/aim, independent reticle behavior, correct shot direction, off-screen reticle support, movement handling, and comfort tuning may be missing at this early stage of development.
+An unofficial head tracking mod for Resident Evil 7 biohazard that moves the view with your head while your mouse or controller keeps aiming, driven by a webcam, phone, or any OpenTrack compatible tracker, with no VR headset required.
 
 ## Features
 
@@ -27,7 +20,7 @@ An unofficial head tracking mod for Resident Evil 7 biohazard that moves the vie
 
 ### Lopari
 
-Once this mod is available in Lopari, download [Lopari](https://lopari.app), choose **Resident Evil 7 biohazard**, and click
+Download [Lopari](https://lopari.app), choose **Resident Evil 7 biohazard**, and click
 **Play with head tracking**.
 
 ### Standalone Installer
