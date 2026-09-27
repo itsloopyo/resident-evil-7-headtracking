@@ -91,6 +91,7 @@ if ($Version -eq 'nightly') {
 
 # Step 1: validate / resolve semver
 $Version = Resolve-ReleaseVersion -Argument $Version -CurrentVersion $currentVersion
+Assert-ReleaseNotBelowCanonicalSince -RepoRoot $projectDir -Version $Version
 $tagName = "v$Version"
 
 # Step 2: branch / clean tree / tag preconditions
