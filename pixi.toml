@@ -21,12 +21,17 @@ update-deps = "powershell -ExecutionPolicy Bypass -File scripts/update-deps.ps1"
 build         = { cmd = "cmake --build build --config Debug",   depends-on = ["setup"] }
 build-release = { cmd = "cmake --build build --config Release", depends-on = ["setup"] }
 
-# Build and run the host-side unit tests. Separate build dir so the plugin
-# build tree is untouched. Split into chained tasks so a configure or build
-# failure stops the run instead of letting ctest execute a stale test binary.
-test-configure = "cmake -B build-tests -A x64 -DRE7HT_BUILD_TESTS=ON"
-test-build = { cmd = "cmake --build build-tests --config Debug --target re7ht_tests", depends-on = ["test-configure"] }
-test = { cmd = "ctest --test-dir build-tests -C Debug --output-on-failure", depends-on = ["test-build"] }
+# Build and run every host-side test (the config tests and the config
+# differential test) in build-tests/, so build/ stays the plugin's alone.
+# run-tests.ps1 stops at a failed configure or build, so ctest never runs a
+# stale binary.
+test = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-tests.ps1"
+build-tests = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-tests.ps1 -BuildOnly"
+
+# Rewrite the committed HeadTracking.ini, the canonical table's fresh render, after a change to a
+# row, a comment or a default, then the config descriptor's per_game in launcher-manifest.json
+# from it. The config tests fail until it has run.
+render-config = { cmd = "build-tests/tests/Debug/re7ht_config_tests.exe --render-config HeadTracking.ini && node cameraunlock-core/scripts/encode-seed.mjs", depends-on = ["build-tests"] }
 
 deploy  = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 Debug",   depends-on = ["build"] }
 install = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 Release", depends-on = ["build-release"] }
@@ -38,13 +43,17 @@ uninstall     = { cmd = "cmd /c scripts\\uninstall.cmd /y" }
 uninstall-all = { cmd = "cmd /c scripts\\uninstall.cmd /y /force" }
 
 clean = { cmd = """
-    powershell -Command "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }; Write-Host 'Build artifacts cleaned' -ForegroundColor Green"
+    powershell -Command "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }; if (Test-Path 'build-tests') { Remove-Item 'build-tests' -Recurse -Force }; Write-Host 'Build artifacts cleaned' -ForegroundColor Green"
 """ }
 clean-all = { cmd = """
-    powershell -Command "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }; if (Test-Path 'release') { Remove-Item 'release' -Recurse -Force }; Write-Host 'All build artifacts cleaned' -ForegroundColor Green"
+    powershell -Command "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }; if (Test-Path 'build-tests') { Remove-Item 'build-tests' -Recurse -Force }; if (Test-Path 'release') { Remove-Item 'release' -Recurse -Force }; Write-Host 'All build artifacts cleaned' -ForegroundColor Green"
 """ }
 
-package = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1", depends-on = ["build-release"] }
+package = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1", depends-on = ["build-release", "test"] }
+
+# Core's manifest validator over the ZIPs package just built: the launcher manifest and its config
+# descriptor, and that the Nexus ZIP carries no config.
+validate-manifest = { cmd = "node cameraunlock-core/scripts/validate-manifest.mjs", depends-on = ["package"] }
 
 release = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/release.ps1" }
 
@@ -53,3 +62,6 @@ release = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/release.ps1"
 # (setup-msbuild in CI). Pinning cmake here keeps the environment non-empty
 # so `pixi list` succeeds on pixi >= 0.70, and makes the build reproducible.
 cmake = ">=3.28"
+# nodejs runs core's canonical config lint in `test`, and core's encode-seed.mjs and
+# validate-manifest.mjs, pinned to the build cameraunlock-core's own lock resolved.
+nodejs = "==26.5.0"

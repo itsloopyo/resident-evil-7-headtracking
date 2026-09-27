@@ -7,9 +7,13 @@
 :: --- CONFIG BLOCK ---
 set "GAME_ID=resident-evil-7"
 set "MOD_DISPLAY_NAME=RE7 Head Tracking"
-set "MOD_DLLS=RE7HeadTracking.dll HeadTracking.ini"
+:: No config is deployed. The mod creates reframework\plugins\CameraUnlock.ini at
+:: first launch, importing HeadTracking.ini from an earlier version once, so a
+:: copy placed here would stop that import on an update, and MOD_DLLS's "copy /y"
+:: would overwrite the player's settings on every install.
+set "MOD_DLLS=RE7HeadTracking.dll"
 set "MOD_INTERNAL_NAME=RE7HeadTracking"
-set "MOD_VERSION=0.0.0"
+set "MOD_VERSION=0.1.0"
 set "STATE_FILE=.headtracking-state.json"
 set "FRAMEWORK_TYPE=REFramework"
 set "REFRAMEWORK_VENDOR_ZIP_NAME=RE7.zip"

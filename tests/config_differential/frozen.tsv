@@ -1,0 +1,36 @@
+# The config differential test's record: the newest published build, the oracle copied from it,
+# the core sources the oracle compiles, and the inputs. check-frozen.ps1 fails when a working-tree
+# path below stops matching its hash. Rows naming <commit>:<path> are provenance, the blobs the
+# oracle came from, and are not checked.
+#
+# Published builds: the rolling dev pre-release only, 0.0.0-nightly.20260820.8322e7a, built from
+# 8322e7a at cameraunlock-core 3465659. There is no v* release. Its installer ZIP ships
+# plugins/HeadTracking.ini and its launcher manifest seeds reframework/plugins/HeadTracking.ini,
+# both byte for byte 8322e7a:HeadTracking.ini. The import is core's PluginConfigLegacyImport over
+# PluginConfig::Read, which core keeps frozen and pins in its own tests; the differential test
+# compiles it at the current pin on every run, so it is not recorded here.
+#
+# path	sha256	what
+tests/config_differential/oracle/src/pch.h	50f54af9725d373573633b9ab3db3bd46fe5c004813fae8af57f9efddb60fcbf	the oracle; 8322e7a:src/pch.h byte for byte
+tests/config_differential/oracle/src/core/config.h	681cdbc18dd62d9a495b582e26324d13ff8fc89a5c4de49ee0230573e70751ac	the oracle; 8322e7a:src/core/config.h byte for byte
+tests/config_differential/oracle/src/core/config.cpp	15dd448567c48bf5cbbbc3f18c103dfa95adb9a881fa5840b8e3327eb25d75aa	the oracle; 8322e7a:src/core/config.cpp byte for byte
+tests/config_differential/oracle/src/core/constants.h	74f39ca8f3f16409969f772dd7e3d1b2d3b3fddfd53019b873e5df9a9119a7fb	the oracle; 8322e7a:src/core/constants.h byte for byte
+tests/config_differential/oracle/src/core/logger.h	5acb22d864e73c0bd37731ee611ae3a6d4f2a43559b0fad9e70743c28e7a0fcb	the oracle; 8322e7a:src/core/logger.h byte for byte
+tests/config_differential/oracle/src/core/logger.cpp	d2ace0bb70433080279f08a97d1bf89961a6ea0cc9e7484da7506d835f2076de	the oracle; 8322e7a:src/core/logger.cpp byte for byte
+cameraunlock-core/cpp/include/cameraunlock/config/ini_reader.h	a7ffb44210ff59672fa97e8e5feaa2cb3e81938fcc0334a384c68bc371b3857a	compiled by the oracle and the import; the same bytes at 3465659
+cameraunlock-core/cpp/src/config/ini_reader.cpp	e01515c2656aaf533bae4350dc45b702c3e3d4043935743dcc9bd5ea581fbe1c	compiled by the oracle and the import; the same bytes at 3465659
+cameraunlock-core/cpp/include/cameraunlock/math/finite_utils.h	c59772d698d54ade3374ee1221b74f5563a86d76f0eb34a989ef7efab389c0ad	the oracle's SanitizeFinite; the same bytes at 3465659
+cameraunlock-core/cpp/include/cameraunlock/protocol/port_utils.h	91bff564d5e279b66527ec5553afcf4d591812dab0e78f71a48ef412e4db7a44	the oracle's NormalizeUdpPort; the same bytes at 3465659
+tests/config_differential/inputs/shipped-dev.ini	396247b0cc7517cfaddcb1c98d6710fc7a3364081aa83be497df32349a1fc1c3	the dev build's installer ZIP plugins/HeadTracking.ini and its decoded launcher seed; 8322e7a:HeadTracking.ini
+tests/config_differential/inputs/committed-67340a4.ini	ff7e6937a98a926b9a61df149a5f7820be9d6ded385a16229fec66e00439f2c3	67340a4:HeadTracking.ini, the version committed before the dev build's
+tests/config_differential/inputs/committed-2545daf.ini	c4a1526442e5c4db586b7660d5a539f3a5ccc0cac2246e3b424e7d2306428b2d	2545daf:HeadTracking.ini, committed after the dev build and never published
+tests/config_differential/inputs/first-run-dev.ini	408eeaa0a7f8b312329ab6fd9d501541f4d6576c6e9f35be9c650ac625fdaa7f	the first-run output of the dev build, Config::SetDefaults then Config::Save as 8322e7a:src/core/config.cpp writes it, extracted once
+8322e7a:src/pch.h	50f54af9725d373573633b9ab3db3bd46fe5c004813fae8af57f9efddb60fcbf	oracle source
+8322e7a:src/core/config.h	681cdbc18dd62d9a495b582e26324d13ff8fc89a5c4de49ee0230573e70751ac	oracle source
+8322e7a:src/core/config.cpp	15dd448567c48bf5cbbbc3f18c103dfa95adb9a881fa5840b8e3327eb25d75aa	oracle source
+8322e7a:src/core/constants.h	74f39ca8f3f16409969f772dd7e3d1b2d3b3fddfd53019b873e5df9a9119a7fb	oracle source
+8322e7a:src/core/logger.h	5acb22d864e73c0bd37731ee611ae3a6d4f2a43559b0fad9e70743c28e7a0fcb	oracle source
+8322e7a:src/core/logger.cpp	d2ace0bb70433080279f08a97d1bf89961a6ea0cc9e7484da7506d835f2076de	oracle source
+8322e7a:src/core/mod.cpp	dc71f5302093e0d8f4f2c35c14bfca128cd376641f993cde27fd30a4c809166a	the published startup code the test models (Mod::Initialize, Mod::LoadConfig)
+8322e7a:src/plugin_main.cpp	0131cf7c08ab126e1af91019a9b99854d0773c059d3d5f5a4463749152c60aed	the published hotkey registration the test models
+8322e7a:HeadTracking.ini	396247b0cc7517cfaddcb1c98d6710fc7a3364081aa83be497df32349a1fc1c3	the shipped file's blob

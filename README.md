@@ -42,7 +42,7 @@ install.cmd "D:\Games\RESIDENT EVIL 7 biohazard"
 If you prefer to place files by hand:
 
 1. If you do not already have REFramework, extract `vendor/reframework/RE7.zip` into the game folder. This places `dinput8.dll` next to `re7.exe`.
-2. Copy `RE7HeadTracking.dll` and `HeadTracking.ini` into `<RE7 install>/reframework/plugins/`.
+2. Copy `RE7HeadTracking.dll` into `<RE7 install>/reframework/plugins/`. The mod creates `CameraUnlock.ini` beside it on first launch.
 
 The Nexus release ZIP contains only this `reframework/` subtree, ready to extract straight into the game folder if you manage REFramework yourself.
 
@@ -109,7 +109,9 @@ view sits off to one side, centre it in the tracker.
 
 ## Controls
 
-Two equivalent binding sets - use whichever your keyboard has:
+Two equivalent binding sets - use whichever your keyboard has. These are the defaults: each
+action's keys are a list under `[Hotkeys]` in `CameraUnlock.ini`, chords included, and any of them
+can be changed or removed.
 
 | Action                     | Nav-cluster | Chord          |
 |----------------------------|-------------|----------------|
@@ -119,68 +121,103 @@ Two equivalent binding sets - use whichever your keyboard has:
 
 `Page Up` / `Ctrl+Shift+G` turns positional (6DOF) tracking off and on. Head rotation keeps running either way.
 
+The positional tracking choice and the yaw mode are saved to `CameraUnlock.ini` the moment you
+change them, so the next launch starts with the same choice. Toggling tracking on or off with `End`
+lasts for the session only: each launch starts with tracking on or off as `EnableOnStartup` says.
+
 ## Configuration
 
-The config file is `reframework/plugins/HeadTracking.ini` in your game folder. Delete it to reset to defaults. If leaning moves the view the wrong way on an axis, flip the matching `Invert` flag.
+<!-- cameraunlock:config -->
+The mod reads its settings from `reframework\plugins\CameraUnlock.ini` in the game folder, and creates the file when it starts and finds none. Edit it with any text editor.
+
+A setting set to `default` takes its value from `Defaults.ini`, which every head tracking mod that keeps its settings in `CameraUnlock.ini` reads. Head tracking mods that keep their settings in another file do not read it. Writing a value in place of `default` changes that setting for this game only. When the mod saves a setting that a hotkey changed in game, it writes the new value in place of `default`, so that setting no longer follows `Defaults.ini` in this game until you set it to `default` again.
+
+`Defaults.ini` is `%AppData%\CameraUnlock\Defaults.ini` on Windows; `$XDG_CONFIG_HOME/CameraUnlock/Defaults.ini` on Linux, or `~/.config/CameraUnlock/Defaults.ini` where `XDG_CONFIG_HOME` is not set, under Wine and Proton too; and `~/Library/Application Support/CameraUnlock/Defaults.ini` on macOS. The mod's log, where it writes one, names the file it read.
+
+When the mod starts and finds no `Defaults.ini`, it creates one holding the built-in values, unless Windows runs the game as a packaged app. The mod never changes `Defaults.ini` after that. Edit it with any text editor.
+
+The built-in value of each setting set to `default` below:
+
+- `UdpPort=4242`
+- `EnableOnStartup=true`
+- `WorldSpaceYaw=true`
+- `LocalSmoothing=0.0`
+- `RemoteSmoothing=0.15`
+- `PositionEnabled=true`
+- `PositionLimitX=0.3`
+- `PositionLimitY=0.2`
+- `PositionLimitZ=0.4`
+- `PositionLimitZBack=0.1`
+- `ToggleKey=End, Ctrl+Shift+Y`
+- `CycleTrackingModeKey=PageUp, Ctrl+Shift+G`
+- `YawModeKey=PageDown, Ctrl+Shift+H`
+
+With every setting at its default, the file reads:
 
 ```ini
+; Resident Evil 7 biohazard head tracking settings.
+; Comments start with ; and go on their own line. Text after a value is part of the value.
+; Hotkeys are key names such as End, PageUp or Ctrl+Shift+Y. Separate several with commas; leave empty for none.
+; A setting set to default takes its value from Defaults.ini, which every head tracking mod
+; that keeps its settings in CameraUnlock.ini reads: %AppData%\CameraUnlock\Defaults.ini on
+; Windows, $XDG_CONFIG_HOME/CameraUnlock/Defaults.ini (normally ~/.config/CameraUnlock) on
+; Linux, under Wine and Proton too, and ~/Library/Application Support/CameraUnlock/Defaults.ini
+; on macOS. The log names the file it read. Write a value instead of default to change that
+; setting for this game only.
+
+[CameraUnlock]
+; Written by the mod. Leave this section in place.
+ConfigFormat=1
+
 [Network]
-; UDP port for OpenTrack data (default: 4242)
-UDPPort=4242
-
-[Sensitivity]
-; Rotation sensitivity multipliers (1.0 = 1:1)
-YawMultiplier=1.0
-PitchMultiplier=1.0
-RollMultiplier=1.0
-
-[Smoothing]
-; Smoothing applied when the tracker runs on this machine (loopback).
-; 0 = no smoothing, 1 = heavy. Covers rotation and position.
-LocalSmoothing=0.0
-; Smoothing applied when the tracker is a remote device on the network.
-; 0 = no smoothing, 1 = heavy. Covers rotation and position.
-RemoteSmoothing=0.15
-
-[Position]
-; Position tracking sensitivity (0.1-10.0, higher = more movement)
-SensitivityX=1.0
-SensitivityY=1.0
-SensitivityZ=1.0
-; Position limits in meters (how far the camera can move)
-LimitX=0.30
-LimitY=0.20
-LimitZ=0.40
-; Backward lean limit (prevents camera clipping through player model)
-LimitZBack=0.10
-; Invert position axes (flip if leaning moves the view the wrong way)
-InvertX=false
-InvertY=false
-InvertZ=false
-; Enable/disable position tracking (6DOF)
-Enabled=true
-
-[Hotkeys]
-; Virtual key codes (hex). Chord alternatives: Ctrl+Shift+Y/G/H.
-ToggleKey=0x23         ; End - Enable/disable
-PositionToggleKey=0x21 ; Page Up - Toggle position
-YawModeKey=0x22        ; Page Down - Toggle world/local yaw
+; UDP port the mod receives tracker data on (OpenTrack protocol).
+UdpPort=default
 
 [General]
-; Auto-enable tracking on game start
-AutoEnable=true
-; Yaw mode: false = camera-local, true = horizon-locked (default)
-WorldSpaceYaw=true
-```
+; true: head tracking is on when the game starts. ToggleKey turns it on and off.
+EnableOnStartup=default
+; true: yaw turns around the world's up axis. false: around the camera's own up axis.
+WorldSpaceYaw=default
 
-`WorldSpaceYaw=true` (the default) keeps yaw locked to the world horizon, so "up" stays constant no matter where the camera is pitched. Set it to `false` for camera-local yaw, which rotates around the camera's current up-axis. This is the same mode the `Page Down` / `Ctrl+Shift+H` hotkey toggles at runtime.
+[Smoothing]
+; Smoothing when the tracker runs on this PC. 0 is the least, 1 the most.
+LocalSmoothing=default
+; Smoothing when the tracker is another device on the network, such as a phone.
+; 0 is the least, 1 the most.
+RemoteSmoothing=default
+
+[Position]
+; true: moving your head moves the view.
+; Tracking mode at startup. The mode hotkey turns it on and off and saves it here.
+PositionEnabled=default
+; How far, in metres, leaning left or right can move the view.
+PositionLimitX=default
+; How far, in metres, raising or lowering your head can move the view.
+PositionLimitY=default
+; How far, in metres, leaning forward can move the view.
+PositionLimitZ=default
+; How far, in metres, leaning back can move the view.
+PositionLimitZBack=default
+
+[Hotkeys]
+; Turns head tracking on and off.
+ToggleKey=default
+; Changes the tracking mode: rotation and position, or rotation only.
+CycleTrackingModeKey=default
+; Switches yaw between the world's up axis and the camera's own (WorldSpaceYaw).
+YawModeKey=default
+```
+<!-- /cameraunlock:config -->
+
+The mod has no sensitivity, deadzone or axis inversion settings: set those in your tracker. It
+moves the view as far as the position your tracker reports, up to the position limits above.
 
 ## Troubleshooting
 
 **Sending a log:**
 - REFramework writes one log per game launch at `<game>/re2_framework_log.txt`. That generic name is used for every RE Engine title, so it is the right file for this game too. If the game folder is not writable it lands in `%APPDATA%\REFramework\<exe name>\` instead.
 - The file is truncated on every launch, so it only ever holds the current session. Attach it as-is to a bug report.
-- This mod's lines are prefixed `[RE7HT]`. The startup sequence to look for is: `Plugin loaded`, `Config loaded from ...`, `UDP receiver started on port ...`, `Initialization complete`, then `First tracker pose received: ...` once the tracker sends anything.
+- This mod's lines are prefixed `[RE7HT]`. The startup sequence to look for is: `Plugin loaded`, `Config Canonical: ...` (`Created` or `Migrated` on a first start), `UDP receiver started on port ...`, `Initialization complete`, then `First tracker pose received: ...` once the tracker sends anything.
 
 **Mod not loading**
 - Launch the game once after installing so REFramework initializes.
@@ -193,7 +230,7 @@ WorldSpaceYaw=true
 - If the view sits off-centre, centre it in your tracker app: OpenTrack's Center bind, the CENTER button in a phone app, or your headset's own centring. The mod applies what the tracker sends and keeps no centre of its own.
 
 **Jittery or unstable tracking**
-- Raise `RemoteSmoothing` (phone or other network tracker) or `LocalSmoothing` (tracker on this PC) in the `[Smoothing]` section of `HeadTracking.ini`.
+- Raise `RemoteSmoothing` (phone or other network tracker) or `LocalSmoothing` (tracker on this PC) in the `[Smoothing]` section of `CameraUnlock.ini`.
 - For wireless or phone trackers, prefer routing through OpenTrack so its filtering can settle the signal.
 
 **Yaw feels wrong at extreme up/down angles**
@@ -205,7 +242,7 @@ Download the new release and run `install.cmd` again. Your config is preserved.
 
 ## Uninstalling
 
-Run `uninstall.cmd`. This removes the mod DLLs. REFramework is only removed if the installer put it there. Use `uninstall.cmd /force` to remove it anyway.
+Run `uninstall.cmd`. This removes the mod DLLs and leaves `CameraUnlock.ini` and `HeadTracking.ini` in place, so a reinstall keeps your settings. REFramework is only removed if the installer put it there. Use `uninstall.cmd /force` to remove it anyway.
 
 ## Building from Source
 

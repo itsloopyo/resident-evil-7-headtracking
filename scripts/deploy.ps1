@@ -51,14 +51,12 @@ if (-not (Test-Path $pluginsDir)) {
 }
 
 $sourceDll = Join-Path $projectDir "bin\$Configuration\RE7HeadTracking.dll"
-$sourceIni = Join-Path $projectDir 'HeadTracking.ini'
 
 if (-not (Test-Path $sourceDll)) {
     throw "Build artifact not found: $sourceDll. Run 'pixi run build' (or 'build-release') first."
 }
 
 $targetDll = Join-Path $pluginsDir 'RE7HeadTracking.dll'
-$targetIni = Join-Path $pluginsDir 'HeadTracking.ini'
 
 if (Test-Path $targetDll) {
     Copy-Item $targetDll "$targetDll.bak" -Force
@@ -68,15 +66,8 @@ if (Test-Path $targetDll) {
 Copy-Item $sourceDll $targetDll -Force
 Write-Host "  Copied: RE7HeadTracking.dll" -ForegroundColor Green
 
-# INI is config; only seed if missing so user edits survive redeploy
-if (-not (Test-Path $targetIni)) {
-    if (Test-Path $sourceIni) {
-        Copy-Item $sourceIni $targetIni -Force
-        Write-Host "  Copied: HeadTracking.ini (default config)" -ForegroundColor Green
-    }
-} else {
-    Write-Host "  Skipped: HeadTracking.ini (preserving existing config)" -ForegroundColor Gray
-}
+# No config is copied: the mod creates reframework\plugins\CameraUnlock.ini at
+# first launch, importing HeadTracking.ini from an earlier build once.
 
 Write-Host ""
 Write-Host "Deployment complete." -ForegroundColor Green

@@ -43,11 +43,6 @@ if (-not (Test-Path $dllPath)) {
     throw "$modName.dll not found at: $dllPath. Run 'pixi run build-release' first."
 }
 
-$iniPath = Join-Path $projectDir 'HeadTracking.ini'
-if (-not (Test-Path $iniPath)) {
-    throw "HeadTracking.ini not found at: $iniPath"
-}
-
 $scriptsDir = Join-Path $projectDir 'scripts'
 foreach ($cmdScript in @('install.cmd', 'uninstall.cmd')) {
     $cmdPath = Join-Path $scriptsDir $cmdScript
@@ -83,8 +78,6 @@ $pluginsDir = Join-Path $ghStagingDir 'plugins'
 New-Item -ItemType Directory -Path $pluginsDir -Force | Out-Null
 Copy-Item $dllPath -Destination $pluginsDir -Force
 Write-Host "  plugins/$modName.dll" -ForegroundColor Green
-Copy-Item $iniPath -Destination $pluginsDir -Force
-Write-Host "  plugins/HeadTracking.ini" -ForegroundColor Green
 
 # Vendor tree: install.cmd extracts vendor/reframework/RE7.zip at user-install
 # time, so the loader zip + LICENSE + README must travel inside the installer ZIP.
@@ -106,7 +99,9 @@ foreach ($asset in $vendorAssets) {
 # launcher-manifest.json is the file lopari reads at the installer-ZIP root.
 # Stamp the real release version in so mod_info.version never drifts from
 # manifest.json. (Not staged into the Nexus ZIP - Nexus users do not use the
-# launcher.)
+# launcher.) No config is shipped in either ZIP or seeded: the mod creates
+# CameraUnlock.ini at first launch, importing HeadTracking.ini from an earlier
+# version once.
 $launcherManifestPath = Join-Path $projectDir 'launcher-manifest.json'
 if (-not (Test-Path $launcherManifestPath)) {
     throw "launcher-manifest.json not found at: $launcherManifestPath"
@@ -158,8 +153,6 @@ New-Item -ItemType Directory -Path $nexusPluginsDir -Force | Out-Null
 
 Copy-Item $dllPath -Destination $nexusPluginsDir -Force
 Write-Host "  reframework/plugins/$modName.dll" -ForegroundColor Green
-Copy-Item $iniPath -Destination $nexusPluginsDir -Force
-Write-Host "  reframework/plugins/HeadTracking.ini" -ForegroundColor Green
 
 $nexusZipName = "$modName-v$version-nexus.zip"
 $nexusZipPath = Join-Path $releaseDir $nexusZipName
