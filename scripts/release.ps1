@@ -44,22 +44,6 @@ if (-not (Test-Path $module)) {
 }
 Import-Module $module -Force
 
-# Mirrors New-ChangelogFromCommits' insertion so a -Force maintenance entry
-# lands in the same place with the same shape.
-function Add-MaintenanceChangelogEntry {
-    param([string]$Path, [string]$NewVersion)
-    $date = Get-Date -Format 'yyyy-MM-dd'
-    $entry = "## [$NewVersion] - $date`n`n### Changed`n`n- Maintenance release (no user-facing changes).`n`n"
-    $changelog = Get-Content $Path -Raw
-    if ($changelog -match '(?s)(# Changelog.*?)(## \[)') {
-        $changelog = $changelog -replace '(?s)(# Changelog.*?\n\n)', "`$1$entry"
-    } else {
-        $changelog = $changelog -replace '(?s)(# Changelog.*?\n)', "`$1$entry"
-    }
-    $changelog = $changelog.TrimEnd() + "`n"
-    Set-Content $Path $changelog -NoNewline
-}
-
 function Get-CurrentVersion {
     $json = Get-Content -Raw -Path $manifestPath | ConvertFrom-Json
     return $json.version
@@ -120,27 +104,13 @@ Write-Host ""
 # instead of stranding a half-applied version bump with no tag.
 Write-Host "Generating CHANGELOG..." -ForegroundColor Cyan
 $changelogPath  = Join-Path $projectDir 'CHANGELOG.md'
-$hasExistingTags = git tag -l 2>$null
-if (-not $hasExistingTags) {
-    $date = Get-Date -Format 'yyyy-MM-dd'
-    Set-Content $changelogPath "# Changelog`n`n## [$Version] - $date`n`nFirst release.`n"
-} else {
-    try {
-        $changelogArgs = @{
-            ChangelogPath = $changelogPath
-            Version       = $Version
-            ArtifactPaths = @('src/', 'cameraunlock-core/', 'scripts/install.cmd', 'scripts/uninstall.cmd')
-        }
-        New-ChangelogFromCommits @changelogArgs
-    } catch {
-        if (-not $Force) {
-            Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
-            Write-Host "No user-facing changes to release. Re-run with -Force for a maintenance release." -ForegroundColor Yellow
-            exit 1
-        }
-        Write-Host "No user-facing commits since last tag - writing maintenance entry (-Force)." -ForegroundColor Yellow
-        Add-MaintenanceChangelogEntry -Path $changelogPath -NewVersion $Version
-    }
+try {
+    New-ChangelogFromCommits -ChangelogPath $changelogPath -Version $Version `
+        -ArtifactPaths @('src/', 'cameraunlock-core/', 'scripts/install.cmd', 'scripts/uninstall.cmd') -Maintenance:$Force
+} catch {
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "No user-facing changes to release. Re-run with -Force for a maintenance release." -ForegroundColor Yellow
+    exit 1
 }
 
 # Step 4: bump canonical version source
